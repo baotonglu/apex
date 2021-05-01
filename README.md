@@ -24,9 +24,7 @@ cd apex
 
 ## Running benchmark
 
-We run the tests in a single NUMA node with 24 physical CPU cores. We pin threads to physical cores compactly assuming thread ID == 2 * core ID (e.g., for a dual-socket system, we assume cores 0, 2, 4, ... are located in socket 0).  To run benchmarks, use the `test_pmem` executable in the `build` directory. It supports the following arguments:
-
-Check out also the `total.sh` script for example benchmarks and easy testing of the hash tables. 
+We run the tests in a single NUMA node with 24 physical CPU cores. We pin threads to physical cores compactly assuming thread ID == 2 * core ID (e.g., for a dual-socket system, we assume cores 0, 2, 4, ... are located in socket 0).  Check out also the `total.sh` and `full.sh` script for example benchmarks and easy testing of the hash tables. 
 
 ## Acknowledgements
 
