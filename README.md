@@ -17,7 +17,7 @@ We tested our build with Linux Kernel 5.10.11 and GCC 9.2. You must ensure that 
 ### Compiling
 Assuming to compile under a `build` directory:
 ```bash
-git clone https://github.com/baotonglu/dash.git
+git clone https://github.com/baotonglu/apex.git
 cd apex
 ./build.sh
 ```
