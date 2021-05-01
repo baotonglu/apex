@@ -28,5 +28,5 @@ We run the tests in a single NUMA node with 24 physical CPU cores. We pin thread
 
 ## Acknowledgements
 
-Our implementation is based on the code [ALEX](https://github.com/microsoft/ALEX).
+Our implementation is based on the code of [ALEX](https://github.com/microsoft/ALEX).
 Longitudes dataset is open-sourced in ALEX's repo.
