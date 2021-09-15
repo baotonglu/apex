@@ -30,6 +30,16 @@ cd apex
 
 We run the tests in a single NUMA node with 24 physical CPU cores. We pin threads to physical cores compactly assuming thread ID == 2 * core ID (e.g., for a dual-socket system, we assume cores 0, 2, 4, ... are located in socket 0).  Check out also the `total.sh` and `full.sh` script for example benchmarks and easy testing of the index. 
 
+## Competitors
+Here hosts source codes which are used in comparision with APEX , including LB+-Tree [1], DPTree [2], uTree [3], FPTree [4], BzTree [5] and FAST+FAIR [6].
+
+[1] https://github.com/schencoding/lbtreeC<br/>
+[2] https://github.com/zxjcarrot/DPTree-code<br/>
+[3] https://github.com/thustorage/nvm-datastructure<br/>
+[4] https://github.com/sfu-dis/fptree<br/>
+[5] https://github.com/sfu-dis/bztree<br/>
+[6] https://github.com/DICL/FAST_FAIR
+
 ## Acknowledgements
 
 Our implementation is based on the code of [ALEX](https://github.com/microsoft/ALEX).
