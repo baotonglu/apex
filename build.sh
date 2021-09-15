@@ -9,7 +9,7 @@ then
 else
     mkdir -p build;
     cd build;
-    $cmake5 -DCMAKE_BUILD_TYPE=Release -DDESC_CAP=16 ..;
+    $cmake5 -DCMAKE_BUILD_TYPE=Release ..;
 fi
 make;
 cd ..;
