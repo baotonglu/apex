@@ -20,7 +20,7 @@ cd apex
 ## Running benchmark
 
 ### Memory pool path
-Please change the PM pool path of our allocator (./src/util/allocator.h) to the memory path on your own server.  
+Please change the PM [pool path](https://github.com/baotonglu/apex/blob/ccd172c1034ec235027aebf0d481b9c583a91ec0/src/util/allocator.h#L24) of our allocator to the memory path on your own server.  
 
 ### Benchmark setting
 We run the tests in a single NUMA node with 24 physical CPU cores. We pin threads to physical cores compactly assuming thread ID == 2 * core ID (e.g., for a dual-socket system, we assume cores 0, 2, 4, ... are located in socket 0).  Check out also the `total.sh` and `run.sh` script for example benchmarks and easy testing of the index. It supports the following arguments:
