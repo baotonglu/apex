@@ -23,7 +23,7 @@ cd apex
 Please change the PM pool path of our allocator (./src/util/allocator.h) to the memory path on your own server.  
 
 ### Benchmark setting
-We run the tests in a single NUMA node with 24 physical CPU cores. We pin threads to physical cores compactly assuming thread ID == 2 * core ID (e.g., for a dual-socket system, we assume cores 0, 2, 4, ... are located in socket 0).  Check out also the `total.sh` and `full.sh` script for example benchmarks and easy testing of the index. It supports the following arguments:
+We run the tests in a single NUMA node with 24 physical CPU cores. We pin threads to physical cores compactly assuming thread ID == 2 * core ID (e.g., for a dual-socket system, we assume cores 0, 2, 4, ... are located in socket 0).  Check out also the `total.sh` and `run.sh` script for example benchmarks and easy testing of the index. It supports the following arguments:
 
 ```bash
 
