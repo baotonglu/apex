@@ -20,7 +20,7 @@ cd apex
 ## Running benchmark
 
 ### Persistent memory pool path
-Please ensure your PM device is properly configured with App Direct mode and mounted to your file system with "DAX" enabled. 
+Please ensure your PM device is properly configured with App Direct mode and mounted to file system with "DAX" enabled. 
 Change the [PM pool path](https://github.com/baotonglu/apex/blob/ccd172c1034ec235027aebf0d481b9c583a91ec0/src/util/allocator.h#L24) of our allocator to the memory path on your own server before testing.  
 
 ### Benchmark setting
