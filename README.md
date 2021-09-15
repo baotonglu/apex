@@ -2,8 +2,6 @@
 
 # APEX: High Performance Learned Index on Persistent Memory
 
-Persistent memory friendly learned index.
-
 More details are described in our [preprint](https://arxiv.org/abs/2105.00683).
 
 ## What's included
