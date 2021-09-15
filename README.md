@@ -4,13 +4,6 @@
 
 More details are described in our [preprint](https://arxiv.org/abs/2105.00683).
 
-## What's included
-
-- APEX - the source code of APEX
-- Mini benchmark framework
-
-Fully open-sourced under MIT license.
-
 ## Building
 
 ### Dependencies
