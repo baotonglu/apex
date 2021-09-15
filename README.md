@@ -40,7 +40,14 @@ Here hosts source codes which are used in comparision with APEX , including LB+-
 [5] https://github.com/sfu-dis/bztree<br/>
 [6] https://github.com/DICL/FAST_FAIR
 
-## Acknowledgements
+## Data sets
+- [Longitudes (200M 8-byte floats)](https://drive.google.com/file/d/1zc90sD6Pze8UM_XYDmNjzPLqmKly8jKl/view?usp=sharing)
+- [Longlat (200M 8-byte floats)](https://drive.google.com/file/d/1mH-y_PcLQ6p8kgAz9SB7ME4KeYAfRfmR/view?usp=sharing)
+- [Lognormal (190M 8-byte ints)](https://drive.google.com/file/d/1y-UBf8CuuFgAZkUg_2b_G8zh4iF_N-mq/view?usp=sharing)
+- [YCSB (200M 8-byte ints)](https://drive.google.com/file/d/1Q89-v4FJLEwIKL3YY3oCeOEs0VUuv5bD/view?usp=sharing)
+- [FB (200M 8-byte ints)](https://github.com/learnedsystems/SOSD)
+- [TPCE (259M 8-byte ints)](https://github.com/sfu-dis/ermia/tree/master/benchmarks/tpce_keys)
 
+
+## Acknowledgements
 Our implementation is based on the code of [ALEX](https://github.com/microsoft/ALEX).
-Longitudes dataset is open-sourced in ALEX's repo.
