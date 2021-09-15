@@ -2,7 +2,7 @@
 
 thread_num=(0 1 2 4 8 16 24 32 48)
 
-for j in 6
+for j in 1
 do
     rm -f /mnt/pmem0/baotong/template.data
     LD_PRELOAD="/usr/lib/libjemalloc.so.2 ./build/pmdk/src/PMDK/src/nondebug/libpmemobj.so.1" /usr/bin/hog-machine.sh numactl --cpunodebind=0 --membind=0 ./build/benchmark \
@@ -20,6 +20,5 @@ do
         --thread_num=${thread_num[$j]} \
         --index=$8 \
         --random_shuffle \
-        --sort_bulkload=$9 \
-        --sleep_ms=100
+        --sort_bulkload=$9 
 done
