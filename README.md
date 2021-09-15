@@ -33,7 +33,7 @@ We run the tests in a single NUMA node with 24 physical CPU cores. We pin thread
 ## Competitors
 Here hosts source codes which are used in comparision with APEX , including LB+-Tree [1], DPTree [2], uTree [3], FPTree [4], BzTree [5] and FAST+FAIR [6].
 
-[1] https://github.com/schencoding/lbtreeC<br/>
+[1] https://github.com/schencoding/lbtree<br/>
 [2] https://github.com/zxjcarrot/DPTree-code<br/>
 [3] https://github.com/thustorage/nvm-datastructure<br/>
 [4] https://github.com/sfu-dis/fptree<br/>
