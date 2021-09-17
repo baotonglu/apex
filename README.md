@@ -1,6 +1,6 @@
 <meta name="robots" content="noindex">
 
-# APEX: High Performance Learned Index on Persistent Memory
+# APEX: A High-Performance Learned Index on Persistent Memory
 
 More details are described in our [preprint](https://arxiv.org/abs/2105.00683).
 
