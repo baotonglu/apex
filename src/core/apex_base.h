@@ -16,14 +16,13 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <memory>
 #include <random>
 #include <set>
-#include <map>
 #include <string>
 #include <utility>
 #include <vector>
-#include <cstring>
 #ifdef _MSC_VER
 #include <intrin.h>
 #else
@@ -53,30 +52,27 @@ typedef unsigned __int32 uint32_t;
 #define forceinline inline
 #endif
 
+#define bitScan(x) __builtin_ffs(x)
 
-#define bitScan(x)  __builtin_ffs(x)
-
-#define SIMD_CMP8(src, key)                                         \
-  do {                                                              \
-    const __m256i key_data = _mm256_set1_epi8(key);                 \
-    __m256i seg_data =                                              \
-        _mm256_loadu_si256(reinterpret_cast<const __m256i *>(src)); \
-    __m256i rv_mask = _mm256_cmpeq_epi8(seg_data, key_data);        \
-    mask = _mm256_movemask_epi8(rv_mask);                           \
+#define SIMD_CMP8(src, key)                                        \
+  do {                                                             \
+    const __m256i key_data = _mm256_set1_epi8(key);                \
+    __m256i seg_data =                                             \
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src)); \
+    __m256i rv_mask = _mm256_cmpeq_epi8(seg_data, key_data);       \
+    mask = _mm256_movemask_epi8(rv_mask);                          \
   } while (0)
 
-#define SSE_CMP8(src, key)                                       \
-  do {                                                           \
-    const __m128i key_data = _mm_set1_epi8(key);                 \
-    __m128i seg_data =                                           \
-        _mm_loadu_si128(reinterpret_cast<const __m128i *>(src)); \
-    __m128i rv_mask = _mm_cmpeq_epi8(seg_data, key_data);        \
-    mask = _mm_movemask_epi8(rv_mask);                           \
+#define SSE_CMP8(src, key)                                                     \
+  do {                                                                         \
+    const __m128i key_data = _mm_set1_epi8(key);                               \
+    __m128i seg_data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src)); \
+    __m128i rv_mask = _mm_cmpeq_epi8(seg_data, key_data);                      \
+    mask = _mm_movemask_epi8(rv_mask);                                         \
   } while (0)
-
 
 namespace alex {
-  
+
 // global statistics about #insert/search iterations
 uint64_t insert_iterations = 0;
 uint64_t insert_times = 0;
@@ -106,7 +102,7 @@ uint64_t traversal_levels = 0;
 uint64_t data_lookup_nums = 0;
 uint64_t overflow_traversal_nums = 0;
 uint64_t overflow_traversal_level_nums = 0;
-uint64_t meta_array_traversal_nums = 0; 
+uint64_t meta_array_traversal_nums = 0;
 
 const uint32_t lockSet = ((uint32_t)1 << 31);
 const uint32_t lockMask = ((uint32_t)1 << 31) - 1;
@@ -124,13 +120,12 @@ const uint64_t headerMask = (((1ULL << 16) - 1) << 48);
 #define PROBING_LENGTH 16
 #define TABLE_FACTOR 16
 #define SCALE_FACTOR 256
-#define LOG_SMO 1 // Use log to ensure the crash consistency of SMO
+#define LOG_SMO 1  // Use log to ensure the crash consistency of SMO
 #define FINGERPRINT 1
 #define DUPLICATE_CHECK 1
 #define NEW_COST_MODEL 1
 #define CONCURRENCY 1
-#define NEW_LOCK 1 
-
+#define NEW_LOCK 1
 
 int parameter_mask = ~((1 << 4) - 1);
 uint64_t array_num_write = 0;
@@ -171,25 +166,22 @@ uint64_t stash_insert = 0;
 uint64_t overflow_stash_insert = 0;
 double total_stash_frac = 0;
 
-
 constexpr double log_length_ = std::log2(PROBING_LENGTH);
 constexpr int table_factor_hide = (1 << 4) - 1;
 
 /*** hash function ***/
 template <class T>
 static inline unsigned char hashcode1B(T y) {
-    uint64_t x = (uint64_t &)y;
-    x ^= x>>32;
-    x ^= x>>16;
-    x ^= x>>8;
-    return (unsigned char)(x&0x0ffULL);
+  uint64_t x = (uint64_t&)y;
+  x ^= x >> 32;
+  x ^= x >> 16;
+  x ^= x >> 8;
+  return (unsigned char)(x & 0x0ffULL);
 }
 
-void align_alloc(void **ptr, size_t size){
-  posix_memalign(ptr, 64, size);
-}
+void align_alloc(void** ptr, size_t size) { posix_memalign(ptr, 64, size); }
 
-void align_zalloc(void **ptr, size_t size){
+void align_zalloc(void** ptr, size_t size) {
   posix_memalign(ptr, 64, size);
   memset(*ptr, 0, size);
 }
@@ -341,7 +333,6 @@ inline int count_ones(uint32_t value) {
   return static_cast<int>(_mm_popcnt_u32(value));
 }
 
-
 // Get the offset of a bit in a bitmap.
 // word_id is the word id of the bit in a bitmap
 // bit is the word that contains the bit
@@ -389,7 +380,7 @@ class StatAccumulator {
  public:
   virtual ~StatAccumulator() = default;
   virtual void accumulate(int actual_position, int predicted_position) = 0;
-#ifdef NEW_COST_MODEL  
+#ifdef NEW_COST_MODEL
   virtual void overflow_accumulate(int overflow_num) = 0;
 #endif
   virtual double get_stat() = 0;
@@ -407,9 +398,7 @@ class ExpectedSearchIterationsAccumulator : public StatAccumulator {
   }
 
 #ifdef NEW_COST_MODEL
-  void overflow_accumulate(int overflow_num) override {
-
-  }
+  void overflow_accumulate(int overflow_num) override {}
 #endif
 
   double get_stat() override {
@@ -440,7 +429,8 @@ class ExpectedShiftsAccumulator : public StatAccumulator {
   // Therefore, we track n^2/4.
   void accumulate(int actual_position, int) override {
     if (actual_position > last_position_ + 1) {
-      long long dense_region_length = last_position_ - dense_region_start_idx_ + 1;
+      long long dense_region_length =
+          last_position_ - dense_region_start_idx_ + 1;
       num_expected_shifts_ += (dense_region_length * dense_region_length) / 4;
       dense_region_start_idx_ = actual_position;
     }
@@ -449,15 +439,14 @@ class ExpectedShiftsAccumulator : public StatAccumulator {
   }
 
 #ifdef NEW_COST_MODEL
-  void overflow_accumulate(int overflow_num) override {
-    
-  }
+  void overflow_accumulate(int overflow_num) override {}
 #endif
 
   double get_stat() override {
     if (count_ == 0) return 0;
     // first need to accumulate statistics for current packed region
-    long long dense_region_length = last_position_ - dense_region_start_idx_ + 1;
+    long long dense_region_length =
+        last_position_ - dense_region_start_idx_ + 1;
     long long cur_num_expected_shifts =
         num_expected_shifts_ + (dense_region_length * dense_region_length) / 4;
     return cur_num_expected_shifts / static_cast<double>(count_);
@@ -490,7 +479,8 @@ class ExpectedIterationsAndShiftsAccumulator : public StatAccumulator {
         std::log2(std::abs(predicted_position - actual_position) + 1);
 
     if (actual_position > last_position_ + 1) {
-      long long dense_region_length = last_position_ - dense_region_start_idx_ + 1;
+      long long dense_region_length =
+          last_position_ - dense_region_start_idx_ + 1;
       num_expected_shifts_ += (dense_region_length * dense_region_length) / 4;
       dense_region_start_idx_ = actual_position;
     }
@@ -500,9 +490,7 @@ class ExpectedIterationsAndShiftsAccumulator : public StatAccumulator {
   }
 
 #ifdef NEW_COST_MODEL
-  void overflow_accumulate(int overflow_num) override {
-    
-  }
+  void overflow_accumulate(int overflow_num) override {}
 #endif
 
   double get_stat() override {
@@ -517,7 +505,8 @@ class ExpectedIterationsAndShiftsAccumulator : public StatAccumulator {
 
   double get_expected_num_shifts() {
     if (count_ == 0) return 0;
-    long long dense_region_length = last_position_ - dense_region_start_idx_ + 1;
+    long long dense_region_length =
+        last_position_ - dense_region_start_idx_ + 1;
     long long cur_num_expected_shifts =
         num_expected_shifts_ + (dense_region_length * dense_region_length) / 4;
     return cur_num_expected_shifts / static_cast<double>(count_);
@@ -540,28 +529,26 @@ class ExpectedIterationsAndShiftsAccumulator : public StatAccumulator {
   int data_capacity_ = -1;  // capacity of node
 };
 
-
 // Mean log error represents the expected number of exponential search
 // iterations when doing a lookup
 class ExpectedSearchCostAccumulator : public StatAccumulator {
-   public:
-  ExpectedSearchCostAccumulator(size_t cost_unit, int overflow_block_unit) : cost_unit_(cost_unit), overflow_block_unit_(overflow_block_unit){
-
-  }
+ public:
+  ExpectedSearchCostAccumulator(size_t cost_unit, int overflow_block_unit)
+      : cost_unit_(cost_unit), overflow_block_unit_(overflow_block_unit) {}
 
   ExpectedSearchCostAccumulator() {
-    cost_unit_ = 16; // sizeof(V) = 16
+    cost_unit_ = 16;  // sizeof(V) = 16
     overflow_block_unit_ = 14;
   }
 
   void accumulate(int actual_position, int predicted_position) override {
-    if(actual_position < predicted_position){
+    if (actual_position < predicted_position) {
       printf("wrong position 1!!!\n");
       exit(-1);
     }
-    cumulative_search_cost_ += (actual_position - predicted_position) * cost_unit_ / 64.0;
+    cumulative_search_cost_ +=
+        (actual_position - predicted_position) * cost_unit_ / 64.0;
     count_++;
-
   }
 
 #ifdef NEW_COST_MODEL
@@ -569,14 +556,16 @@ class ExpectedSearchCostAccumulator : public StatAccumulator {
     /*
     cumulative_search_cost_ += (overflow_num * cost_unit_) / 64.0
                               + overflow_num / overflow_block_unit_
-                              + (overflow_num % overflow_block_unit_) * cost_unit_ / 64.0 + 1;
+                              + (overflow_num % overflow_block_unit_) *
+    cost_unit_ / 64.0 + 1;
     */
-    cumulative_search_cost_ +=  ((overflow_num + PROBING_LENGTH) * cost_unit_) / 64.0 + 1;                              
+    cumulative_search_cost_ +=
+        ((overflow_num + PROBING_LENGTH) * cost_unit_) / 64.0 + 1;
     count_++;
     overflow_count_++;
     /*
-    cumulative_search_cost_ +=  (overflow_num * PROBING_LENGTH * cost_unit_) / 64.0 + overflow_num / overflow_block_unit_ + 1;
-    count_+=overflow_num;
+    cumulative_search_cost_ +=  (overflow_num * PROBING_LENGTH * cost_unit_)
+    / 64.0 + overflow_num / overflow_block_unit_ + 1; count_+=overflow_num;
     */
   }
 #endif
@@ -606,33 +595,36 @@ class ExpectedSearchCostAccumulator : public StatAccumulator {
 // Combines ExpectedSearchIterationsAccumulator and ExpectedShiftsAccumulator
 class ExpectedInsertAndSearchCostAccumulator : public StatAccumulator {
  public:
-  ExpectedInsertAndSearchCostAccumulator(){
+  ExpectedInsertAndSearchCostAccumulator() {
     cost_unit_ = 16;
     overflow_block_unit_ = 14;
   }
-  explicit ExpectedInsertAndSearchCostAccumulator(size_t cost_unit, int overflow_block_unit)
+  explicit ExpectedInsertAndSearchCostAccumulator(size_t cost_unit,
+                                                  int overflow_block_unit)
       : cost_unit_(cost_unit), overflow_block_unit_(overflow_block_unit) {}
 
   void accumulate(int actual_position, int predicted_position) override {
-    if(actual_position < predicted_position){
+    if (actual_position < predicted_position) {
       printf("wrong position 2!!!\n");
       exit(-1);
     }
-    cumulative_search_cost_ += (actual_position - predicted_position) * cost_unit_ / 64.0;
+    cumulative_search_cost_ +=
+        (actual_position - predicted_position) * cost_unit_ / 64.0;
     count_++;
   }
 
 #ifdef NEW_COST_MODEL
   void overflow_accumulate(int overflow_num) override {
     auto whether_first = overflow_num % overflow_block_unit_;
-    cumulative_search_cost_ += ((overflow_num + PROBING_LENGTH) * cost_unit_) / 64.0;
-    
-    if(whether_first == 1){      
+    cumulative_search_cost_ +=
+        ((overflow_num + PROBING_LENGTH) * cost_unit_) / 64.0;
+
+    if (whether_first == 1) {
       cumulative_insert_cost_ += 2.5;
-    }else{
+    } else {
       cumulative_insert_cost_ += 0.5;
     }
-    
+
     count_++;
     overflow_count_++;
   }
@@ -717,4 +709,4 @@ class CPUID {
 bool cpu_supports_bmi() {
   return static_cast<bool>(CPUID(7, 0).EBX() & (1 << 3));
 }
-}
+}  // namespace alex
