@@ -54,23 +54,6 @@ typedef unsigned __int32 uint32_t;
 
 #define bitScan(x) __builtin_ffs(x)
 
-#define SIMD_CMP8(src, key)                                        \
-  do {                                                             \
-    const __m256i key_data = _mm256_set1_epi8(key);                \
-    __m256i seg_data =                                             \
-        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(src)); \
-    __m256i rv_mask = _mm256_cmpeq_epi8(seg_data, key_data);       \
-    mask = _mm256_movemask_epi8(rv_mask);                          \
-  } while (0)
-
-#define SSE_CMP8(src, key)                                                     \
-  do {                                                                         \
-    const __m128i key_data = _mm_set1_epi8(key);                               \
-    __m128i seg_data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src)); \
-    __m128i rv_mask = _mm_cmpeq_epi8(seg_data, key_data);                      \
-    mask = _mm_movemask_epi8(rv_mask);                                         \
-  } while (0)
-
 namespace alex {
 
 // global statistics about #insert/search iterations
