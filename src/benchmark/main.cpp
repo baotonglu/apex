@@ -37,6 +37,7 @@ int thread_num;
 std::string index_type;
 double theta;
 int batch_size = 10000000;
+int init_insert_keys;
 
 template <class T, class P>
 Tree<T, P> *generate_index() {
@@ -178,7 +179,14 @@ void Run() {
   }
 
   int i = init_num_keys;
-  int num_pre_insertion = i;
+  int num_pre_insertion = i + init_insert_keys;
+
+  // Insert keys into index
+  std::cout << "Start the pre-insertion" << std::endl;
+  for (; i < num_pre_insertion; i++) {
+    index->insert(keys[i], (PAYLOAD_TYPE)(&keys[i]));
+  }
+  std::cout << "End the pre-insertition" << std::endl;
 
   // Generate the workload
   // Mixed workload (mixing search and insert), search/erase/update workload
@@ -287,6 +295,7 @@ int main(int argc, char *argv[]) {
   init_num_keys = stoi(get_required(flags, "init_num_keys"));
   workload_keys = stoi(get_required(
       flags, "workload_keys"));  // Number of operations in the workload
+  init_insert_keys = stoi(get_required(flags, "init_insert_keys"));
   total_num_keys = stoi(get_required(flags, "total_num_keys"));
   operation = get_required(flags, "operation");  // Which operation to evalaute
   insert_frac = stod(get_with_default(flags, "insert_frac", "0.5"));

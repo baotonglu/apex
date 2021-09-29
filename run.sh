@@ -9,7 +9,8 @@ do
         --keys_file=$1 \
         --keys_file_type=$2 \
         --keys_type=$3 \
-        --init_num_keys=100000000 \
+        --init_num_keys=50000000 \
+        --init_insert_keys=50000000 \
         --workload_keys=$4 \
         --total_num_keys=$5 \
         --operation=$6 \
