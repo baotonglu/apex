@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 /*
- * This file contains code for ALEX nodes. There are two types of nodes in ALEX:
+ * This file contains code for APEX nodes. There are two types of nodes in APEX:
  * - Model nodes (equivalent to internal/inner nodes of a B+ Tree)
  * - Data nodes, sometimes referred to as leaf nodes (equivalent to leaf nodes
  * of a B+ Tree)
@@ -29,8 +29,7 @@
 #include "apex_base.h"
 #include "apex_log.h"
 // Whether we store key and payload arrays separately in data nodes
-// By default, we store them separately
-//#define ALEX_DATA_NODE_SEP_ARRAYS 1
+// By default, we store them in co-located way
 
 #if ALEX_DATA_NODE_SEP_ARRAYS
 #define ALEX_DATA_NODE_KEY_AT(i) key_slots_[i]
@@ -41,15 +40,6 @@
 #endif
 
 #define MY_PERSISTENCE 1
-#define DRAM_BITMAP 1
-#define HIDE_BITMAP 1  // hide the logic of bitmap operation
-//#define NEW_LEAF 1
-
-// Whether we use lzcnt and tzcnt when manipulating a bitmap (e.g., when finding
-// the closest gap).
-// If your hardware does not support lzcnt/tzcnt (e.g., your Intel CPU is
-// pre-Haswell), set this to 0.
-#define ALEX_USE_LZCNT 1
 
 namespace alex {
 // A parent class for both types of ALEX nodes
@@ -59,12 +49,10 @@ class AlexNode {
   // Whether this node is a leaf (data) node
   bool is_leaf_ = false;
 
-  // obsolete, to indicate whether this node has been deleted
+  // Obsolete, to indicate whether this node has been deleted
   bool is_obsolete_ = false;
-  // Power of 2 to which the pointer to this node is duplicated in its parent
-  // model node
-  // For example, if duplication_factor_ is 3, then there are 8 redundant
-  // pointers to this node in its parent
+
+  // 2 ^ local_depth_ = number of entries in inner node
   uint8_t local_depth_ = 0;
 
   // Node's level in the RMI. Root node is level 0
