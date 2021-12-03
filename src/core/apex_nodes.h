@@ -39,10 +39,10 @@
 #define ALEX_DATA_NODE_PAYLOAD_AT(i) data_slots_[i].second
 #endif
 
-#define MY_PERSISTENCE 1
+#define PERSISTENCE 1
 
 namespace alex {
-// A parent class for both types of ALEX nodes
+// A parent class for both types of APEX nodes
 template <class T, class P>
 class AlexNode {
  public:
@@ -74,15 +74,10 @@ class AlexNode {
   virtual long long node_size() const = 0;
 };
 
-template <class T, class P, class Alloc = my_alloc::allocator<std::pair<T, P>>>
+template <class T, class P>
 class AlexModelNode : public AlexNode<T, P> {
  public:
-  typedef AlexModelNode<T, P, Alloc> self_type;
-  typedef typename Alloc::template rebind<self_type>::other alloc_type;
-  typedef typename Alloc::template rebind<AlexNode<T, P>*>::other
-      pointer_alloc_type;
-
-  const Alloc& allocator_;
+  typedef AlexModelNode<T, P> self_type;
 
   // Lock, for synchronization of multiple threads
   uint32_t lock_ = 0;
@@ -91,24 +86,13 @@ class AlexModelNode : public AlexNode<T, P> {
   int num_children_ = 0;
 
   // Array of pointers to children
-  // Hacking skills
+  // Hacking skills, store the children array adjacent with the node header
   AlexNode<T, P>* children_[0];
-  explicit AlexModelNode(const Alloc& alloc = Alloc())
-      : AlexNode<T, P>(0, false), allocator_(alloc) {}
+  explicit AlexModelNode() : AlexNode<T, P>(0, false) {}
 
-  explicit AlexModelNode(short level, const Alloc& alloc = Alloc())
-      : AlexNode<T, P>(level, false), allocator_(alloc) {}
+  explicit AlexModelNode(short level) : AlexNode<T, P>(level, false) {}
 
   ~AlexModelNode() {}
-
-  // BT: FIXME, this should be crash consistent
-  AlexModelNode(const self_type& other)
-      : AlexNode<T, P>(other),
-        allocator_(other.allocator_),
-        num_children_(other.num_children_) {
-    std::copy(other.children_, other.children_ + other.num_children_,
-              children_);
-  }
 
   static void New(PMEMoid* new_node, size_t num_children = 0) {
     my_alloc::BasePMPool::Allocate(
@@ -119,11 +103,7 @@ class AlexModelNode : public AlexNode<T, P> {
     new_model_node->num_children_ = num_children;
   }
 
-  uint64_t get_node_size() {
-    // return (sizeof(AlexModelNode<T, P>) + num_children_ * sizeof(AlexNode<T,
-    // P>*));
-    return num_children_ * sizeof(AlexNode<T, P>*);
-  }
+  uint64_t get_node_size() { return num_children_ * sizeof(AlexNode<T, P>*); }
 
   // Given a key, traverses to the child node responsible for that key
   inline AlexNode<T, P>* get_child_node(const T& key) {
@@ -132,16 +112,49 @@ class AlexModelNode : public AlexNode<T, P> {
     return children_[bucketID];
   }
 
-  // The RW Lock
-  // Only the node expansion of the model node needs to get the write lock,
-  // otherwise The read lock is enough
+  /*** Concurrency Control for internal nodes ***/
+
+  // The reader-writer lock for updates.
+  // Only the node expansion of the model node needs to get the write lock.
+  // Otherwise, the read lock is enough.
+  // In other cases, lock-free read is used in internal nodes.
+
+  // Reader locking operation
+  inline bool get_read_lock() {
+    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
+    if ((v & lockSet) || this->is_obsolete_) return false;
+
+    auto old_value = v & lockMask;
+    auto new_value = old_value + 1;  // We assume the #threads < 2^31
+    while (!CAS(&lock_, &old_value, new_value)) {
+      if ((old_value & lockSet) || this->is_obsolete_) {
+        return false;
+      }
+      old_value = old_value & lockMask;
+      new_value = old_value + 1;
+    }
+
+    return true;
+  }
+
+  inline bool try_get_read_lock() {
+    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
+    if ((v & lockSet) || this->is_obsolete_) return false;
+    auto old_value = v & lockMask;
+    auto new_value = old_value + 1;
+    return CAS(&lock_, &old_value, new_value);
+  }
+
+  inline void release_read_lock() { SUB(&lock_, 1); }
+
+  // Writer locking operation
   inline bool get_write_lock() {
     uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
     if ((v & lockSet) || this->is_obsolete_) {
       return false;
     }
-    uint32_t old_value = v & lockMask;
-    uint32_t new_value = old_value | lockSet;
+    auto old_value = v & lockMask;
+    auto new_value = old_value | lockSet;
 
     while (!CAS(&lock_, &old_value, new_value)) {
       if ((old_value & lockSet) || this->is_obsolete_) {
@@ -151,7 +164,7 @@ class AlexModelNode : public AlexNode<T, P> {
       new_value = old_value | lockSet;
     }
 
-    // wait until the readers all exit the critical section
+    // Wait until the readers all exit the critical section
     v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
     while (v & lockMask) {
       v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
@@ -159,6 +172,37 @@ class AlexModelNode : public AlexNode<T, P> {
     return true;
   }
 
+  inline bool try_get_write_lock() {
+    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
+    if ((v & lockSet) || this->is_obsolete_) {
+      return false;
+    }
+    uint32_t old_value = v & lockMask;
+    uint32_t new_value = old_value | lockSet;
+
+    if (!CAS(&lock_, &old_value, new_value)) {
+      return false;
+    }
+
+    // wait until the readers all exit the critical section
+    v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
+    while (v & lockMask) {
+      v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
+    }
+
+    return true;
+  }
+
+  inline void release_write_lock() {
+    __atomic_store_n(&lock_, 0, __ATOMIC_RELEASE);
+  }
+
+  inline bool test_write_lock_set() {
+    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
+    return v & lockSet;
+  }
+
+  // Promote the reader lock to writer lock
   inline bool promote_from_read_to_write() {
     uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
     if ((v & lockSet) || this->is_obsolete_) {
@@ -185,66 +229,14 @@ class AlexModelNode : public AlexNode<T, P> {
     return true;
   }
 
-  inline bool try_get_write_lock() {
-    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
-    uint32_t old_value = v & lockMask;
-    uint32_t new_value = old_value | lockSet;
-
-    if (!CAS(&lock_, &old_value, new_value)) {
-      return false;
-    }
-
-    // wait until the readers all exit the critical section
-    v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
-    while (v & lockMask) {
-      v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
-    }
-
-    return true;
-  }
-
-  inline bool test_write_lock_set() {
-    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
-    return v & lockSet;
-  }
-
-  inline bool get_read_lock() {
-    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
-    if ((v & lockSet) || this->is_obsolete_) return false;
-
-    uint32_t old_value = v & lockMask;
-    auto new_value = ((v & lockMask) + 1) & lockMask;
-    while (!CAS(&lock_, &old_value, new_value)) {
-      if ((old_value & lockSet) || this->is_obsolete_) {
-        return false;
-      }
-      old_value = old_value & lockMask;
-      new_value = ((old_value & lockMask) + 1) & lockMask;
-    }
-
-    return true;
-  }
-
-  inline bool try_get_read_lock() {
-    uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
-    if ((v & lockSet) || this->is_obsolete_) return false;
-    uint32_t old_value = v & lockMask;
-    auto new_value = ((v & lockMask) + 1) & lockMask;
-    return CAS(&lock_, &old_value, new_value);
-  }
-
-  inline void release_read_lock() { SUB(&lock_, 1); }
-
+  // Used in recovery
   inline void reset_rw_lock() {
     lock_ = 0;
     clwb(&lock_);
     sfence();
   }
 
-  inline void release_write_lock() {
-    __atomic_store_n(&lock_, 0, __ATOMIC_RELEASE);
-  }
-
+  // For debugging purposes only
   void display_all_child() {
     printf("All children of node %p\n", this);
     for (int i = 0; i < num_children_; ++i) {
@@ -258,6 +250,7 @@ class AlexModelNode : public AlexNode<T, P> {
   // Input is the base 2 log of the expansion factor, in order to guarantee
   // expanding by a power of 2.
   // Returns the expansion factor.
+  // FIXME (BT): this function should be removed
   int expand(int log2_expansion_factor) {
     assert(log2_expansion_factor >= 0);
     int expansion_factor = 1 << log2_expansion_factor;
@@ -306,6 +299,7 @@ class AlexModelNode : public AlexNode<T, P> {
                                                         expansion_factor);
       return 0;
     };
+
     auto callback_args = std::make_tuple(log2_expansion_factor, old_node);
     my_alloc::BasePMPool::Allocate(
         new_node, CACHE_LINE_SIZE,
@@ -313,10 +307,6 @@ class AlexModelNode : public AlexNode<T, P> {
                                           old_node->num_children_ *
                                           (1 << log2_expansion_factor),
         callback, reinterpret_cast<void*>(&callback_args));
-  }
-
-  pointer_alloc_type pointer_allocator() {
-    return pointer_alloc_type(allocator_);
   }
 
   long long node_size() const override {
@@ -340,50 +330,41 @@ class AlexModelNode : public AlexNode<T, P> {
  * - Debugging
  */
 template <class T, class P, class Compare = AlexCompare,
-          class Alloc = my_alloc::allocator<std::pair<T, P>>,
           bool allow_duplicates = true>
 class AlexDataNode : public AlexNode<T, P> {
  public:
   typedef std::pair<T, P> V;
-  typedef AlexDataNode<T, P, Compare, Alloc, allow_duplicates> self_type;
-  typedef typename Alloc::template rebind<self_type>::other alloc_type;
-  typedef typename Alloc::template rebind<T>::other key_alloc_type;
-  typedef typename Alloc::template rebind<P>::other payload_alloc_type;
-  typedef typename Alloc::template rebind<V>::other value_alloc_type;
-  typedef typename Alloc::template rebind<uint64_t>::other bitmap_alloc_type;
+  typedef AlexDataNode<T, P, Compare, allow_duplicates> self_type;
 
   const Compare& key_less_;
-  // Forward declaration
-  template <typename node_type = self_type, typename payload_return_type = P,
-            typename value_return_type = V>
-  class Iterator;
-  typedef Iterator<> iterator_type;
-  typedef Iterator<const self_type, const P, const V> const_iterator_type;
-
+  // Forward declaration, this is similar to "Iterator" in ALEX
   template <typename node_type = self_type, typename payload_return_type = P,
             typename value_return_type = V>
   class OrderIterator;
   typedef OrderIterator<> o_iterator_type;
   typedef OrderIterator<const self_type, const P, const V> order_iterator_type;
 
+  // Extended stash block, stored in PM
   template <typename key_type = T, typename payload_type = P>
   class OverflowStash;
   typedef OverflowStash<T, P> overflow_stash_type;
 
+  // Used to index stash block allocation, stored in DRAM
   template <typename key_type = T, typename payload_type = P>
   class IndexOverflowStash;
   typedef IndexOverflowStash<T, P> index_overflow_stash_type;
 
-  // 128 byte (2 cacheline size)
+  // One "overflow bucket" described in our paper, used to index extended stash
+  // block for fast accesses. 128 byte (2 cacheline size)
   class OverflowFinger {
    public:
-    // Use header 16 bits to store the fingerprint of the key-value
+    // Use header 8 bits to store the fingerprint of the key-value
     V* overflow_array_[OVERFLOW_FINGER_LENGTH];
-    // uint16_t offset_[OVERFLOW_FINGER_LENGTH]; // If the first bit is set,
-    // indicate this kV is stored in overflow stash, otherwise, it stores the
-    // offset in stash array
     OverflowFinger* next_;
 
+    // To get the bitmap to describe the pointer usage in this overflow bucket.
+    // 1 indicates that this pointer is pointing a location is SA or extended
+    // stash block. 0 represents free slot.
     inline uint32_t get_bitmap() const {
       uint32_t bitmap = 0;
       for (int i = 0; i < OVERFLOW_FINGER_LENGTH; ++i) {
@@ -395,7 +376,7 @@ class AlexDataNode : public AlexNode<T, P> {
     }
   };
 
-  // 28 byte byte
+  // One "accelerator" described in our paper. 24 bytes.
   class MetaInfo {
    public:
     inline uint32_t get_bitmap() const {
@@ -403,20 +384,22 @@ class AlexDataNode : public AlexNode<T, P> {
       return static_cast<uint32_t>(bitmap);
     }
 
-    // pos = 0...15
+    // 'pos' belongs to [0,15], set one bit
     inline void set_bitmap(int pos) {
       uint64_t bitmap = 1ULL << (pos + 48);
       overflow_finger_ = reinterpret_cast<OverflowFinger*>(
           reinterpret_cast<uint64_t>(overflow_finger_) | bitmap);
     }
 
+    // unset one bit
     inline void unset_bitmap(int pos) {
       uint64_t bitmap = ~(1ULL << (pos + 48));
       overflow_finger_ = reinterpret_cast<OverflowFinger*>(
           reinterpret_cast<uint64_t>(overflow_finger_) & bitmap);
     }
 
-    // Need to shift 48 bites before udpating the bitmap
+    // Update the whole bitmap.
+    // Need to shift 48 bites before udpating the bitmap.
     inline void update_bitmap(uint64_t bitmap) {
       overflow_finger_ = reinterpret_cast<OverflowFinger*>(
           (reinterpret_cast<uint64_t>(overflow_finger_) & addrMask) |
@@ -439,8 +422,9 @@ class AlexDataNode : public AlexNode<T, P> {
     char fingerprint_[TABLE_FACTOR];
   };
 
-  // To scale on multi-core, we partition these metadata for every SCALE_FACTOR
-  // records 64 bytes
+  // FIXME (BT): remove scale_factor_, whish is hard to describe and missing in
+  // our paper To scale on multi-core, we partition these metadata for every
+  // SCALE_FACTOR records; One "ScaleParameter" 64 bytes
   class ScaleParameter {
    public:
     int num_keys_ = 0;
@@ -450,11 +434,11 @@ class AlexDataNode : public AlexNode<T, P> {
     double num_insert_cost_ = 0;
     double num_search_cost_ = 0;  // 32B
     index_overflow_stash_type* index_overflow_stash_ = nullptr;
-    overflow_stash_type* last_stash_ = nullptr;
+    overflow_stash_type* last_stash_ = nullptr;  // 48B
     int overflow_stash_count_ = 0;
-    int expansion_threshold_ = 0;  // 48B
+    int expansion_threshold_ = 0;  // 56B
     int array_insert_ = 0;
-    int stash_insert_ = 0;  // 56B
+    int stash_insert_ = 0;  // 64B
   };
 
   MetaInfo* meta_info_array_ = nullptr;
@@ -568,12 +552,10 @@ class AlexDataNode : public AlexNode<T, P> {
       OID_NULL;  // used for data slots alloc and also for overflow stash alloc
 #endif
   PMEMmutex recover_lock_;
-  const Alloc& allocator_;
 
   /*** Constructors and destructors ***/
 
-  explicit AlexDataNode(const Compare& comp = Compare(),
-                        const Alloc& alloc = Alloc())
+  explicit AlexDataNode(const Compare& comp = Compare())
       : AlexNode<T, P>(0, true), key_less_(comp), allocator_(alloc) {}
 
   AlexDataNode(T invalid_key, const Compare& comp = Compare(),
