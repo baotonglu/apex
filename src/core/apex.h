@@ -1584,7 +1584,7 @@ public:
         link_resizing_data_nodes(leaf, node);
 
         if (parent == superroot_) {
-          update_superroot_key_domain(node->min_key_, node->max_key_);
+          update_superroot_key_domain(&node->min_key_, &node->max_key_);
           root_node_ = node;
           update_superroot_pointer();
         }
@@ -1690,7 +1690,7 @@ public:
         link_resizing_data_nodes(leaf, node);
 
         if (parent == superroot_) {
-          update_superroot_key_domain(node->min_key_, node->max_key_);
+          update_superroot_key_domain(&node->min_key_, &node->max_key_);
           root_node_ = node;
           update_superroot_pointer();
         }
