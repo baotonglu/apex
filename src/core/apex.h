@@ -1519,6 +1519,7 @@ public:
     // cost
     if (fail) {
       if (fail == -1) { // Duplicate key detected
+        std::cout << "Duplicate key detected for key " << key << std::endl;
         return false;
       }
 
@@ -1587,6 +1588,9 @@ public:
         // 5. clear log
         resize_log->clear_log();
         release_link_locks_for_resizing(node);
+
+        std::cout << "Finish resizing for key " << key << std::endl;
+
         return true;
       }
 
