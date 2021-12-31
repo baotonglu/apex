@@ -1582,6 +1582,12 @@ public:
         link_resizing_data_nodes(leaf, node);
 
         node->release_lock();
+
+        std::cout << "Min key of resizing node = " << node->min_key_
+                  << std::endl;
+        std::cout << "Max key of resizing node = " << node->max_key_
+                  << std::endl;
+
         parent->release_read_lock();
         safe_delete_node(leaf);
 
