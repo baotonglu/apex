@@ -1505,6 +1505,9 @@ public:
 
     thread_local LocalLog my_log(log_); // The log descriptor
     data_node_type *leaf = get_leaf(key);
+    std::cout << "Target min = " << leaf->min_key_ << std::endl;
+    std::cout << "Target max = " << leaf->max_key_ << std::endl;
+
     // First test it whether it needs to be recoverred
     if (leaf->local_version_ != global_version_) {
       leaf->recover_node(global_version_);
