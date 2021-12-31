@@ -1505,8 +1505,6 @@ public:
 
     thread_local LocalLog my_log(log_); // The log descriptor
     data_node_type *leaf = get_leaf(key);
-    std::cout << "Target min = " << leaf->min_key_ << std::endl;
-    std::cout << "Target max = " << leaf->max_key_ << std::endl;
 
     // First test it whether it needs to be recoverred
     if (leaf->local_version_ != global_version_) {
@@ -1527,6 +1525,15 @@ public:
       }
 
       if (fail == 4) {
+        uint32_t version;
+        if (leaf->test_lock_set(version)) {
+          std::cout << "The SMO lock is on for key " << key << std::endl;
+          std::cout << "Min key for this node = " << leaf->min_key_
+                    << std::endl;
+          std::cout << "Max key for this node = " << leaf->max_key_
+                    << std::endl;
+          exit(-1);
+        }
         goto RETRY; // The operation is in a SMO, need retry
       }
 
