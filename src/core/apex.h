@@ -1593,6 +1593,8 @@ public:
 
         node->release_lock();
 
+        std::cout << "Lock status = " << node->lock_ << std::endl;
+
         std::cout << "Min key of resizing node = " << node->min_key_
                   << std::endl;
         std::cout << "Max key of resizing node = " << node->max_key_
