@@ -1153,7 +1153,7 @@ private:
   // NO need for persistency, re-update the key domain
   void update_superroot_key_domain(const T *min_key = nullptr,
                                    const T *max_key = nullptr) {
-    get_lock();
+    // get_lock();
     assert(stats_.num_inserts == 0 || root_node_->is_leaf_);
     if (min_key == nullptr) {
       istats_.key_domain_min_ = get_min_key();
@@ -1174,7 +1174,7 @@ private:
         1.0 / (istats_.key_domain_max_ - istats_.key_domain_min_);
     superroot_->model_.b_ =
         -1.0 * istats_.key_domain_min_ * superroot_->model_.a_;
-    release_lock();
+    // release_lock();
   }
 
   void update_superroot_pointer() {
@@ -1489,7 +1489,7 @@ public:
   bool insert_unsafe(const T &key, const P &payload) {
     // If enough keys fall outside the key domain, expand the root to expand the
     // key domain
-    std::cout << "Insert key " << key << std::endl;
+    // std::cout << "Insert key " << key << std::endl;
   RETRY:
     if (key > istats_.key_domain_max_) {
       istats_.num_keys_above_key_domain++;
@@ -1520,21 +1520,12 @@ public:
     // cost
     if (fail) {
       if (fail == -1) { // Duplicate key detected
-        std::cout << "Duplicate key detected for key " << key << std::endl;
+        // std::cout << "Duplicate key detected for key " << key << std::endl;
         return false;
       }
 
       if (fail == 4) {
         uint32_t version;
-        std::cout << "Lock status in the leaf = " << leaf->lock_ << std::endl;
-        if (leaf->test_lock_set(version)) {
-          std::cout << "The SMO lock is on for key " << key << std::endl;
-          std::cout << "Min key for this node = " << leaf->min_key_
-                    << std::endl;
-          std::cout << "Max key for this node = " << leaf->max_key_
-                    << std::endl;
-          exit(-1);
-        }
         goto RETRY; // The operation is in a SMO, need retry
       }
 
@@ -1592,14 +1583,20 @@ public:
         // 4. Link to sibling node (Need redo upon reocvery)
         link_resizing_data_nodes(leaf, node);
 
+        if (parent == superroot_) {
+          update_superroot_key_domain(node->min_key_, noe->max_key_);
+          root_node_ = new_node;
+          update_superroot_pointer();
+        }
+
         node->release_lock();
 
-        std::cout << "Lock status = " << node->lock_ << std::endl;
+        // std::cout << "Lock status = " << node->lock_ << std::endl;
 
-        std::cout << "Min key of resizing node = " << node->min_key_
-                  << std::endl;
-        std::cout << "Max key of resizing node = " << node->max_key_
-                  << std::endl;
+        // std::cout << "Min key of resizing node = " << node->min_key_
+        //           << std::endl;
+        // std::cout << "Max key of resizing node = " << node->max_key_
+        //           << std::endl;
 
         parent->release_read_lock();
         safe_delete_node(leaf);
@@ -1608,9 +1605,9 @@ public:
         resize_log->clear_log();
         release_link_locks_for_resizing(node);
 
-        std::cout << "Reprint Lock status = " << node->lock_ << std::endl;
+        // std::cout << "Reprint Lock status = " << node->lock_ << std::endl;
 
-        std::cout << "Finish resizing for key " << key << std::endl;
+        // std::cout << "Finish resizing for key " << key << std::endl;
 
         return true;
       }
@@ -1692,6 +1689,12 @@ public:
         // 4. Link to sibling node (Need redo upon reocvery)
         link_resizing_data_nodes(leaf, node);
 
+        if (parent == superroot_) {
+          update_superroot_key_domain(node->min_key_, noe->max_key_);
+          root_node_ = new_node;
+          update_superroot_pointer();
+        }
+
         node->release_lock();
         parent->release_read_lock();
         safe_delete_node(leaf);
@@ -1722,7 +1725,7 @@ public:
       ADD(&stats_.num_keys, (1 << 19));
     }
 
-    std::cout << "Finish insert key " << key << std::endl;
+    // std::cout << "Finish insert key " << key << std::endl;
     return true;
   }
 
