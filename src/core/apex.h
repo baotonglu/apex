@@ -1526,6 +1526,7 @@ public:
 
       if (fail == 4) {
         uint32_t version;
+        std::cout << "Lock status in the leaf = " << leaf->lock_ << std::endl;
         if (leaf->test_lock_set(version)) {
           std::cout << "The SMO lock is on for key " << key << std::endl;
           std::cout << "Min key for this node = " << leaf->min_key_
@@ -1606,6 +1607,8 @@ public:
         // 5. clear log
         resize_log->clear_log();
         release_link_locks_for_resizing(node);
+
+        std::cout << "Reprint Lock status = " << node->lock_ << std::endl;
 
         std::cout << "Finish resizing for key " << key << std::endl;
 
