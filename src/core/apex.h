@@ -180,7 +180,7 @@ private:
 
   // At least this many keys must be outside the domain before a domain
   // expansion is triggered.
-  static const int kMinOutOfDomainKeys = 100;
+  static const int kMinOutOfDomainKeys = 5;
   // After this many keys are outside the domain, a domain expansion must be
   // triggered.
   static const int kMaxOutOfDomainKeys = 1000;
@@ -1522,7 +1522,6 @@ public:
     // cost
     if (fail) {
       if (fail == -1) { // Duplicate key detected
-        // std::cout << "Duplicate key detected for key " << key << std::endl;
         return false;
       }
 
