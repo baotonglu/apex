@@ -1491,7 +1491,10 @@ public:
   bool insert_unsafe(const T &key, const P &payload) {
     // If enough keys fall outside the key domain, expand the root to expand the
     // key domain
-    printf("Insert key %.10f\n", key);
+    T debug_key = 32471.4740744;
+    if (key == debug_key) {
+      printf("Insert key %.10f\n", key);
+    }
   RETRY:
     if (key > istats_.key_domain_max_) {
       ADD(&istats_.num_keys_above_key_domain, 1);
