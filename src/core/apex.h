@@ -1494,6 +1494,8 @@ public:
     T debug_key = 32471.4740744;
     if (key == debug_key) {
       printf("Insert key %.10f\n", key);
+      printf("Min key %.10f\n", istats_.key_domain_min_);
+      printf("Max key %.10f\n", istats_.key_domain_max_);
     }
   RETRY:
     if (key > istats_.key_domain_max_) {
@@ -1510,8 +1512,6 @@ public:
 
     if (key == debug_key) {
       std::cout << "Pass expansion check" << std::endl;
-      printf("Min key %.10f\n", istats_.key_domain_min_);
-      printf("Max key %.10f\n", istats_.key_domain_max_);
     }
 
     thread_local LocalLog my_log(log_); // The log descriptor
