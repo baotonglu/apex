@@ -1491,7 +1491,7 @@ public:
   bool insert_unsafe(const T &key, const P &payload) {
     // If enough keys fall outside the key domain, expand the root to expand the
     // key domain
-    // std::cout << "Insert key " << key << std::endl;
+    std::cout << "Insert key " << key << std::endl;
   RETRY:
     if (key > istats_.key_domain_max_) {
       ADD(&istats_.num_keys_above_key_domain, 1);
