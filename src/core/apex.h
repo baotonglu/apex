@@ -1508,8 +1508,18 @@ public:
       }
     }
 
+    if (key == debug_key) {
+      std::cout << "Pass expansion check" << std::endl;
+      printf("Min key %.10f\n", istats_.key_domain_min_);
+      printf("Max key %.10f\n", istats_.key_domain_max_);
+    }
+
     thread_local LocalLog my_log(log_); // The log descriptor
     data_node_type *leaf = get_leaf(key);
+
+    if (key == debug_key) {
+      std::cout << "I have gotten the corresponding leaf" << std::endl;
+    }
 
     // First test it whether it needs to be recoverred
     if (leaf->local_version_ != global_version_) {
@@ -1520,6 +1530,11 @@ public:
         leaf->insert(key, payload, &(my_log.local_log_->overflow_desc_));
     int fail = ret.first;
     double stash_frac = ret.second;
+
+    if (key == debug_key) {
+      std::cout << "I finish the insertion in the leaf" << std::endl;
+      std::cout << "Fail num = " << fail << std::endl;
+    }
 
     // If no insert, figure out what to do with the data node to decrease the
     // cost
