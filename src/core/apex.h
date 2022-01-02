@@ -1169,6 +1169,8 @@ private:
     istats_.num_keys_at_last_left_domain_resize = stats_.num_keys;
     istats_.num_keys_above_key_domain = 0;
     istats_.num_keys_below_key_domain = 0;
+    STORE(&istats_.num_keys_above_key_domain, 0);
+    STORE(&istats_.num_keys_below_key_domain, 0);
     my_alloc::BasePMPool::Persist(&istats_, sizeof(istats_));
     superroot_->model_.a_ =
         1.0 / (istats_.key_domain_max_ - istats_.key_domain_min_);
@@ -1492,12 +1494,12 @@ public:
     // std::cout << "Insert key " << key << std::endl;
   RETRY:
     if (key > istats_.key_domain_max_) {
-      istats_.num_keys_above_key_domain++;
+      ADD(&istats_.num_keys_above_key_domain, 1);
       if (should_expand_right()) {
         expand_root(key, false); // expand to the right
       }
     } else if (key < istats_.key_domain_min_) {
-      istats_.num_keys_below_key_domain++;
+      ADD(&istats_.num_keys_below_key_domain, 1);
       if (should_expand_left()) {
         expand_root(key, true); // expand to the left
       }
@@ -1590,25 +1592,12 @@ public:
         }
 
         node->release_lock();
-
-        // std::cout << "Lock status = " << node->lock_ << std::endl;
-
-        // std::cout << "Min key of resizing node = " << node->min_key_
-        //           << std::endl;
-        // std::cout << "Max key of resizing node = " << node->max_key_
-        //           << std::endl;
-
         parent->release_read_lock();
         safe_delete_node(leaf);
 
         // 5. clear log
         resize_log->clear_log();
         release_link_locks_for_resizing(node);
-
-        // std::cout << "Reprint Lock status = " << node->lock_ << std::endl;
-
-        // std::cout << "Finish resizing for key " << key << std::endl;
-
         return true;
       }
 
@@ -1768,6 +1757,22 @@ private:
   // a new root node.
   void expand_root(T key, bool expand_left) {
     std::cout << "I am in expanding process" << std::endl;
+    if (!superroot_->try_get_write_lock()) {
+      return;
+    }
+
+    if (expand_left) {
+      if (!should_expand_left()) {
+        superroot_->release_write_lock();
+        return;
+      }
+    } else {
+      if (!should_expand_right()) {
+        superroot_->release_write_lock();
+        return;
+      }
+    }
+
     auto root = static_cast<model_node_type *>(root_node_);
     root_expand_log_->old_root_node_ = pmemobj_oid(root);
     // Find the new bounds of the key domain.
@@ -2008,6 +2013,7 @@ private:
     istats_.key_domain_min_ = new_domain_min;
     istats_.key_domain_max_ = new_domain_max;
 
+    superroot_->release_write_lock();
     std::cout << "Finish the root expansion" << std::endl;
   }
 
