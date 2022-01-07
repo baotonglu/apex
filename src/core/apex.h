@@ -1500,7 +1500,9 @@ public:
   RETRY:
     if (key > istats_.key_domain_max_) {
       ADD(&istats_.num_keys_above_key_domain, 1);
-      if (should_expand_right()) {
+      std::cout << "Num obove key domain = "
+                << istats_.num_keys_above_key_domain << std::endl;
+      if (should_expand_right(key)) {
         expand_root(key, false); // expand to the right
       }
     } else if (key < istats_.key_domain_min_) {
@@ -1744,7 +1746,18 @@ private:
   // or
   // (2) above some minimum threshold and the number is much more than we would
   // expect from randomness alone.
-  bool should_expand_right() const {
+  bool should_expand_right(const T &key) const {
+    T debug_key = 32471.4740744;
+    if (key == debug_key) {
+      std::cout << "root_node_->is_leaf_ = " << root_node_->is_leaf_
+                << std::endl;
+      std::cout << "istats_.num_keys_above_key_domain = "
+                << istats_.num_keys_above_key_domain << std::endl;
+      std::cout << "istats_.num_keys_at_last_right_domain_resize = "
+                << istats_.num_keys_at_last_right_domain_resize << std::endl;
+      std::cout << "stats_.num_keys = " << stats_.num_keys << std::endl;
+    }
+
     return (!root_node_->is_leaf_ &&
             ((istats_.num_keys_above_key_domain >= kMinOutOfDomainKeys &&
               istats_.num_keys_above_key_domain >=
