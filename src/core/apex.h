@@ -1797,7 +1797,7 @@ private:
         return;
       }
     } else {
-      if (!should_expand_right()) {
+      if (!should_expand_right(key)) {
         superroot_->release_write_lock();
         return;
       }
