@@ -1709,7 +1709,6 @@ public:
                                       node->num_keys_);
           root_node_ = node;
           update_superroot_pointer();
-          ,
         }
 
         node->release_lock();
