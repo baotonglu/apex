@@ -2103,7 +2103,7 @@ private:
     model_node_type *parent = traversal_path.back().node;
     if (parent == superroot_) {
       update_superroot_key_domain(&leaf->min_key_, &leaf->max_key_,
-                                  leaf->num_keys);
+                                  leaf->num_keys_);
     }
     int bucketID = parent->model_.predict(key);
     bucketID =
