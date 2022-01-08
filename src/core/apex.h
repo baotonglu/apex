@@ -1152,7 +1152,8 @@ private:
   // is a data node.
   // NO need for persistency, re-update the key domain
   void update_superroot_key_domain(const T *min_key = nullptr,
-                                   const T *max_key = nullptr) {
+                                   const T *max_key = nullptr,
+                                   int num_keys = 0) {
     // get_lock();
     assert(stats_.num_inserts == 0 || root_node_->is_leaf_);
     if (min_key == nullptr) {
@@ -1165,6 +1166,11 @@ private:
     } else {
       istats_.key_domain_max_ = *max_key;
     }
+
+    if (num_keys != 0) {
+      stats_.num_keys = num_keys;
+    }
+
     istats_.num_keys_at_last_right_domain_resize = stats_.num_keys;
     istats_.num_keys_at_last_left_domain_resize = stats_.num_keys;
     istats_.num_keys_above_key_domain = 0;
@@ -1605,7 +1611,8 @@ public:
         link_resizing_data_nodes(leaf, node);
 
         if (parent == superroot_) {
-          update_superroot_key_domain(&node->min_key_, &node->max_key_);
+          update_superroot_key_domain(&node->min_key_, &node->max_key_,
+                                      node->num_keys_);
           root_node_ = node;
           update_superroot_pointer();
         }
@@ -1698,9 +1705,11 @@ public:
         link_resizing_data_nodes(leaf, node);
 
         if (parent == superroot_) {
-          update_superroot_key_domain(&node->min_key_, &node->max_key_);
+          update_superroot_key_domain(&node->min_key_, &node->max_key_,
+                                      node->num_keys_);
           root_node_ = node;
           update_superroot_pointer();
+          ,
         }
 
         node->release_lock();
@@ -2093,7 +2102,8 @@ private:
     }
     model_node_type *parent = traversal_path.back().node;
     if (parent == superroot_) {
-      update_superroot_key_domain();
+      update_superroot_key_domain(&leaf->min_key_, &leaf->max_key_,
+                                  leaf->num_keys);
     }
     int bucketID = parent->model_.predict(key);
     bucketID =
