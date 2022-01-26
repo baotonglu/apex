@@ -2005,7 +2005,7 @@ private:
         }
         int left_boundary = right_boundary;
         if (i + n >= in_bounds_new_nodes_end) {
-          right_boundary = outermost_node->data_capacity_;
+          right_boundary = outermost_node->num_keys_;
         } else {
           right_boundary_value += domain_size;
           right_boundary =
@@ -2055,64 +2055,6 @@ private:
 
     superroot_->release_write_lock();
     std::cout << "Finish expanding process" << std::endl;
-  }
-
-  // Splits downwards in the manner determined by the fanout tree and updates
-  // the pointers of the parent.
-  // If no fanout tree is provided, then splits downward in two. Returns the
-  // newly created model node.
-  model_node_type *
-  split_downwards(model_node_type *parent, int bucketID, int fanout_tree_depth,
-                  std::vector<fanout_tree::FTNode> &used_fanout_tree_nodes,
-                  bool reuse_model) {
-    auto leaf = static_cast<data_node_type *>(parent->children_[bucketID]);
-    stats_.num_downward_splits++;
-    stats_.num_downward_split_keys += leaf->num_keys_;
-
-    // Create the new model node that will replace the current data node
-    int fanout = 1 << fanout_tree_depth;
-    auto new_node = new (model_node_allocator().allocate(1))
-        model_node_type(leaf->level_, allocator_);
-    new_node->duplication_factor_ = leaf->duplication_factor_;
-    new_node->num_children_ = fanout;
-    new_node->children_ =
-        new (pointer_allocator().allocate(fanout)) AlexNode<T, P> *[fanout];
-
-    int repeats = 1 << leaf->duplication_factor_;
-    int start_bucketID =
-        bucketID - (bucketID % repeats); // first bucket with same child
-    int end_bucketID =
-        start_bucketID + repeats; // first bucket with different child
-    double left_boundary_value =
-        (start_bucketID - parent->model_.b_) / parent->model_.a_;
-    double right_boundary_value =
-        (end_bucketID - parent->model_.b_) / parent->model_.a_;
-    new_node->model_.a_ =
-        1.0 / (right_boundary_value - left_boundary_value) * fanout;
-    new_node->model_.b_ = -new_node->model_.a_ * left_boundary_value;
-
-    // Create new data nodes
-    if (used_fanout_tree_nodes.empty()) {
-      assert(fanout_tree_depth == 1);
-      create_two_new_data_nodes(leaf, new_node, fanout_tree_depth, reuse_model);
-    } else {
-      create_new_data_nodes(leaf, new_node, fanout_tree_depth,
-                            used_fanout_tree_nodes);
-    }
-
-    delete_node(leaf);
-    stats_.num_data_nodes--;
-    stats_.num_model_nodes++;
-    for (int i = start_bucketID; i < end_bucketID; i++) {
-      parent->children_[i] = new_node;
-    }
-    if (parent == superroot_) {
-      root_node_ = new_node;
-      update_superroot_pointer();
-    }
-    superroot_->release_write_lock();
-    return new_node;
-    std::cout << "Finish the root expansion" << std::endl;
   }
 
   // Splits downwards in the manner determined by the fanout tree and updates
