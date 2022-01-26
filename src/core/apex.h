@@ -1812,7 +1812,7 @@ private:
     }
 
     auto root = static_cast<model_node_type *>(root_node_);
-    root_expand_log_->old_root_node_ = pmemobj_oid(root);
+
     // Find the new bounds of the key domain.
     // Need to be careful to avoid overflows in the key type.
     T domain_size = istats_.key_domain_max_ - istats_.key_domain_min_;
@@ -1820,9 +1820,7 @@ private:
     T new_domain_min = istats_.key_domain_min_;
     T new_domain_max = istats_.key_domain_max_;
     data_node_type *outermost_node;
-
     if (expand_left) {
-      root_expand_log_->root_expand_in_progress_ = -1;
       auto key_difference = static_cast<double>(istats_.key_domain_min_ -
                                                 std::min(key, get_min_key()));
       expansion_factor = pow_2_round_up(static_cast<int>(
@@ -1845,7 +1843,6 @@ private:
     } else {
       auto key_difference = static_cast<double>(std::max(key, get_max_key()) -
                                                 istats_.key_domain_max_);
-
       expansion_factor = pow_2_round_up(static_cast<int>(
           std::ceil((key_difference + domain_size) / domain_size)));
       // Check for overflow. To avoid overflow on signed types while doing
@@ -1869,64 +1866,58 @@ private:
     // Modify the root node appropriately
     int new_nodes_start; // index of first pointer to a new node
     int new_nodes_end;   // exclusive
-    if (root->num_children_ * expansion_factor <= derived_params_.max_fanout) {
-      // During the node expansion, now we still need to replace with the new
-      // node Expand root node
-      stats_.num_model_node_expansions++;
-      stats_.num_model_node_expansion_pointers += root->num_children_;
+    model_node_type *new_root = nullptr;
+    if (static_cast<size_t>(root->num_children_) * expansion_factor <=
+        static_cast<size_t>(derived_params_.max_fanout)) {
+      // Expand root node
+      // stats_.num_model_node_expansions++;
+      // stats_.num_model_node_expansion_pointers += root->num_children_;
       int new_num_children = root->num_children_ * expansion_factor;
 
-      PMEMoid tmp;
+      PMEMoid tmp; // New root
       model_node_type::New(&tmp, new_num_children);
-      auto new_root_node =
-          reinterpret_cast<model_node_type *>(pmemobj_direct(tmp));
-      new (new_root_node) model_node_type(*root);
-      auto new_children = new_root_node->children_;
-      // auto new_children = new
-      // (pointer_allocator().allocate(new_num_children))
-      //     AlexNode<T, P>*[new_num_children];
+      new_root = reinterpret_cast<model_node_type *>(pmemobj_direct(tmp));
+      new (new_root) model_node_type(root->level_, allocator_);
+      new_root->local_depth_ = root->local_depth_;
+      new_root->model_ = root->model_;
+
       int copy_start;
       if (expand_left) {
         copy_start = new_num_children - root->num_children_;
         new_nodes_start = 0;
         new_nodes_end = copy_start;
         // root->model_.b_ += new_num_children - root->num_children_;
-        new_root_node->model_.b_ += new_num_children - root->num_children_;
+        new_root->model_.b_ += new_num_children - root->num_children_;
       } else {
         copy_start = 0;
         new_nodes_start = root->num_children_;
         new_nodes_end = new_num_children;
       }
       for (int i = 0; i < root->num_children_; i++) {
-        new_children[copy_start + i] = root->children_[i];
+        new_root->children_[copy_start + i] = root->children_[i];
       }
-
       // pointer_allocator().deallocate(root->children_, root->num_children_);
       // root->children_ = new_children;
       // root->num_children_ = new_num_children;
-      // BT: FIXME, no dellocation of the old root node
-      root = new_root_node;
-      root_node_ = new_root_node;
-      update_superroot_pointer();
     } else {
       // Create new root node
-      // auto new_root = new (model_node_allocator().allocate(1))
-      //    model_node_type(static_cast<short>(root->level_ - 1), allocator_);
-      PMEMoid tmp;
+      PMEMoid tmp; // New root
       model_node_type::New(&tmp, expansion_factor);
-      auto new_root = reinterpret_cast<model_node_type *>(pmemobj_direct(tmp));
-      new (new_root)
-          model_node_type(static_cast<short>(root->level_ - 1), allocator_);
-      new_root->model_.a_ = root->model_.a_;
+      new_root = reinterpret_cast<model_node_type *>(pmemobj_direct(tmp));
+      new (new_root) model_node_type(root->level_ - 1, allocator_);
+      new_root->local_depth_ = root->local_depth_;
+
+      // auto new_root = new (model_node_allocator().allocate(1))
+      // model_node_type(static_cast<short>(root->level_ - 1), allocator_);
+      new_root->model_.a_ = root->model_.a_ / root->num_children_;
+      new_root->model_.b_ = root->model_.b_ / root->num_children_;
       if (expand_left) {
-        new_root->model_.b_ = root->model_.b_ + expansion_factor - 1;
-      } else {
-        new_root->model_.b_ = root->model_.b_;
+        new_root->model_.b_ += expansion_factor - 1;
       }
-      new_root->num_children_ = expansion_factor;
+      // new_root->num_children_ = expansion_factor;
       // new_root->children_ = new
-      // (pointer_allocator().allocate(expansion_factor))
-      //     AlexNode<T, P>*[expansion_factor];
+      // (pointer_allocator().allocate(expansion_factor)) AlexNode<T, P>
+      // *[expansion_factor];
       if (expand_left) {
         new_root->children_[expansion_factor - 1] = root;
         new_nodes_start = 0;
@@ -1935,9 +1926,12 @@ private:
         new_nodes_start = 1;
       }
       new_nodes_end = new_nodes_start + expansion_factor - 1;
-      root_node_ = new_root;
-      update_superroot_pointer();
-      root = new_root;
+      // BT (FIXME): nitice that I haven't replace the root with the new_root.
+      // Need to take care the logic below
+
+      // root_node_ = new_root;
+      // update_superroot_pointer();
+      // root = new_root;
     }
     // Determine if new nodes represent a range outside the key type's domain.
     // This happens when we're preventing overflows.
@@ -1945,10 +1939,10 @@ private:
     int in_bounds_new_nodes_end = new_nodes_end;
     if (expand_left) {
       in_bounds_new_nodes_start =
-          std::max(new_nodes_start, root->model_.predict(new_domain_min));
+          std::max(new_nodes_start, new_root->model_.predict(new_domain_min));
     } else {
       in_bounds_new_nodes_end =
-          std::min(new_nodes_end, root->model_.predict(new_domain_max) + 1);
+          std::min(new_nodes_end, new_root->model_.predict(new_domain_max) + 1);
     }
 
     // Fill newly created child pointers of the root node with new data nodes.
@@ -1956,15 +1950,19 @@ private:
     // pointers, where n is the number of pointers to existing nodes.
     // Requires reassigning some keys from the outermost pre-existing data node
     // to the new data nodes.
-    int n = root->num_children_ - (new_nodes_end - new_nodes_start);
-    assert(root->num_children_ % n == 0);
+    int n = new_root->num_children_ - (new_nodes_end - new_nodes_start);
+    assert(new_root->num_children_ % n == 0);
+    auto new_local_depth = static_cast<uint8_t>(
+        log_2_round_down(new_root->num_children_) - log_2_round_down(n));
+    // auto new_node_duplication_factor =
+    // static_cast<uint8_t>(log_2_round_down(n));
 
-    int new_local_depth =
-        log_2_round_down(root->num_children_) - log_2_round_down(n);
+    outermost_node->build_sorted_slots();
+
     if (expand_left) {
       T left_boundary_value = istats_.key_domain_min_;
       int left_boundary =
-          outermost_node->lower_bound(left_boundary_value, true, true);
+          outermost_node->lower_bound(left_boundary_value, true);
       data_node_type *next = outermost_node;
       for (int i = new_nodes_end; i > new_nodes_start; i -= n) {
         if (i <= in_bounds_new_nodes_start) {
@@ -1979,25 +1977,26 @@ private:
           left_boundary =
               outermost_node->lower_bound(left_boundary_value, true);
         }
+        PMEMoid tmp;
         data_node_type *new_node = bulk_load_leaf_node_from_existing(
             outermost_node, left_boundary, right_boundary, true, nullptr, false,
-            false, false);
-        new_node->level_ = static_cast<short>(root->level_ + 1);
+            false, false, false, &tmp);
+        new_node->level_ = static_cast<short>(new_root->level_ + 1);
+        // new_node->duplication_factor_ = new_node_duplication_factor;
         new_node->local_depth_ = new_local_depth;
         if (next) {
           next->prev_leaf_ = new_node;
         }
         new_node->next_leaf_ = next;
         next = new_node;
-
         for (int j = i - 1; j >= i - n; j--) {
-          root->children_[j] = new_node;
+          new_root->children_[j] = new_node;
         }
       }
     } else {
       T right_boundary_value = istats_.key_domain_max_;
       int right_boundary =
-          outermost_node->lower_bound(right_boundary_value, true, true);
+          outermost_node->lower_bound(right_boundary_value, true);
       data_node_type *prev = nullptr;
       for (int i = new_nodes_start; i < new_nodes_end; i += n) {
         if (i >= in_bounds_new_nodes_end) {
@@ -2012,10 +2011,12 @@ private:
           right_boundary =
               outermost_node->lower_bound(right_boundary_value, true);
         }
+        PMEMoid tmp;
         data_node_type *new_node = bulk_load_leaf_node_from_existing(
             outermost_node, left_boundary, right_boundary, true, nullptr, false,
-            false, false);
-        new_node->level_ = static_cast<short>(root->level_ + 1);
+            false, false, false, &tmp);
+        new_node->level_ = static_cast<short>(new_root->level_ + 1);
+        // new_node->duplication_factor_ = new_node_duplication_factor;
         new_node->local_depth_ = new_local_depth;
         if (prev) {
           prev->next_leaf_ = new_node;
@@ -2023,35 +2024,94 @@ private:
         new_node->prev_leaf_ = prev;
         prev = new_node;
         for (int j = i; j < i + n; j++) {
-          root->children_[j] = new_node;
+          new_root->children_[j] = new_node;
         }
       }
     }
 
-    // Now the log is ready, we could enters the redo phase
-
     // Connect leaf nodes and remove reassigned keys from outermost pre-existing
     // node.
     if (expand_left) {
-      outermost_node->erase_range(root_expand_log_->new_domain_min_,
-                                  istats_.key_domain_min_);
+      outermost_node->erase_range(new_domain_min, istats_.key_domain_min_);
       auto last_new_leaf =
-          static_cast<data_node_type *>(root->children_[new_nodes_end - 1]);
+          static_cast<data_node_type *>(new_root->children_[new_nodes_end - 1]);
       outermost_node->prev_leaf_ = last_new_leaf;
       last_new_leaf->next_leaf_ = outermost_node;
     } else {
       outermost_node->erase_range(istats_.key_domain_max_, new_domain_max,
                                   true);
       auto first_new_leaf =
-          static_cast<data_node_type *>(root->children_[new_nodes_start]);
+          static_cast<data_node_type *>(new_root->children_[new_nodes_start]);
       outermost_node->next_leaf_ = first_new_leaf;
       first_new_leaf->prev_leaf_ = outermost_node;
     }
+
+    root_node_ = new_root;
+    update_superroot_pointer();
+    root = new_root;
 
     istats_.key_domain_min_ = new_domain_min;
     istats_.key_domain_max_ = new_domain_max;
 
     superroot_->release_write_lock();
+    std::cout << "Finish expanding process" << std::endl;
+  }
+
+  // Splits downwards in the manner determined by the fanout tree and updates
+  // the pointers of the parent.
+  // If no fanout tree is provided, then splits downward in two. Returns the
+  // newly created model node.
+  model_node_type *
+  split_downwards(model_node_type *parent, int bucketID, int fanout_tree_depth,
+                  std::vector<fanout_tree::FTNode> &used_fanout_tree_nodes,
+                  bool reuse_model) {
+    auto leaf = static_cast<data_node_type *>(parent->children_[bucketID]);
+    stats_.num_downward_splits++;
+    stats_.num_downward_split_keys += leaf->num_keys_;
+
+    // Create the new model node that will replace the current data node
+    int fanout = 1 << fanout_tree_depth;
+    auto new_node = new (model_node_allocator().allocate(1))
+        model_node_type(leaf->level_, allocator_);
+    new_node->duplication_factor_ = leaf->duplication_factor_;
+    new_node->num_children_ = fanout;
+    new_node->children_ =
+        new (pointer_allocator().allocate(fanout)) AlexNode<T, P> *[fanout];
+
+    int repeats = 1 << leaf->duplication_factor_;
+    int start_bucketID =
+        bucketID - (bucketID % repeats); // first bucket with same child
+    int end_bucketID =
+        start_bucketID + repeats; // first bucket with different child
+    double left_boundary_value =
+        (start_bucketID - parent->model_.b_) / parent->model_.a_;
+    double right_boundary_value =
+        (end_bucketID - parent->model_.b_) / parent->model_.a_;
+    new_node->model_.a_ =
+        1.0 / (right_boundary_value - left_boundary_value) * fanout;
+    new_node->model_.b_ = -new_node->model_.a_ * left_boundary_value;
+
+    // Create new data nodes
+    if (used_fanout_tree_nodes.empty()) {
+      assert(fanout_tree_depth == 1);
+      create_two_new_data_nodes(leaf, new_node, fanout_tree_depth, reuse_model);
+    } else {
+      create_new_data_nodes(leaf, new_node, fanout_tree_depth,
+                            used_fanout_tree_nodes);
+    }
+
+    delete_node(leaf);
+    stats_.num_data_nodes--;
+    stats_.num_model_nodes++;
+    for (int i = start_bucketID; i < end_bucketID; i++) {
+      parent->children_[i] = new_node;
+    }
+    if (parent == superroot_) {
+      root_node_ = new_node;
+      update_superroot_pointer();
+    }
+    superroot_->release_write_lock();
+    return new_node;
     std::cout << "Finish the root expansion" << std::endl;
   }
 
