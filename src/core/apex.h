@@ -1811,6 +1811,8 @@ private:
       }
     }
 
+    std::cout << "1. Start the expand" << std::endl;
+
     auto root = static_cast<model_node_type *>(root_node_);
 
     // Find the new bounds of the key domain.
@@ -1862,6 +1864,8 @@ private:
       outermost_node = last_data_node();
     }
     assert(expansion_factor > 1);
+
+    std::cout << "2. Allocate new root node" << std::endl;
 
     // Modify the root node appropriately
     int new_nodes_start; // index of first pointer to a new node
@@ -1944,6 +1948,8 @@ private:
       in_bounds_new_nodes_end =
           std::min(new_nodes_end, new_root->model_.predict(new_domain_max) + 1);
     }
+
+    std::cout << "3. Allocate data nodes for new root node" << std::endl;
 
     // Fill newly created child pointers of the root node with new data nodes.
     // To minimize empty new data nodes, we create a new data node per n child
@@ -2028,6 +2034,8 @@ private:
         }
       }
     }
+
+    std::cout << "4. Erase range for obsolete root node" << std::endl;
 
     // Connect leaf nodes and remove reassigned keys from outermost pre-existing
     // node.
