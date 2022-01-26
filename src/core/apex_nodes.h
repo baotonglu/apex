@@ -206,7 +206,9 @@ public:
       return false;
     }
 
-    f(verbose) { std::cout << "2. lock value = " << lock_ << std::endl; }
+    if (verbose) {
+      std::cout << "2. lock value = " << lock_ << std::endl;
+    }
 
     // wait until the readers all exit the critical section
     v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
@@ -214,7 +216,9 @@ public:
       v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
     }
 
-    f(verbose) { std::cout << "3. lock value = " << lock_ << std::endl; }
+    if (verbose) {
+      std::cout << "3. lock value = " << lock_ << std::endl;
+    }
 
     return true;
   }
