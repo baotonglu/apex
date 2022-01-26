@@ -1800,6 +1800,8 @@ private:
       return;
     }
 
+    std::cout << "hello?" << std::endl;
+
     if (expand_left) {
       if (!should_expand_left()) {
         std::cout << "Left verification false and return" << std::endl;
