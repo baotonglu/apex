@@ -1795,7 +1795,7 @@ private:
   // a new root node.
   void expand_root(T key, bool expand_left) {
     std::cout << "I am in expanding process" << std::endl;
-    if (!superroot_->try_get_write_lock()) {
+    if (!superroot_->try_get_write_lock(true)) {
       std::cout << "False to get the write lock in superroot" << std::endl;
       return;
     }
