@@ -201,7 +201,7 @@ public:
     if (verbose) {
       std::cout << "1. lock value = " << lock_ << std::endl;
       std::cout << " old value = " << old_value << std::endl;
-      std::cout << " new value = " << old_value << std::endl;
+      std::cout << " new value = " << new_value << std::endl;
     }
 
     if (!CAS(&lock_, &old_value, new_value)) {
