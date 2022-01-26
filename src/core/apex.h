@@ -1558,6 +1558,7 @@ public:
 
       if (fail == 5) // Data node resizing
       {
+        std::cout << "------1 Data node resizing-----------------" << std::endl;
         // Directly resize the current node
         // Resize this node and install to the parent
         // 0. Start logging
@@ -1649,6 +1650,7 @@ public:
       }
 
       if (fanout_tree_depth == 0) {
+        std::cout << "------2 Data node resizing-----------------" << std::endl;
         // 0. Start logging
         ResizeLog *resize_log = &(my_log.local_log_->resize_log_);
         resize_log->progress_ = 1;
@@ -1720,6 +1722,7 @@ public:
 
         release_link_locks_for_resizing(node);
       } else {
+        std::cout << "------3 Data node SMO-----------------" << std::endl;
         // split data node: always try to split sideways/upwards, only split
         // downwards if necessary
         bool reuse_model = (fail == 3);
