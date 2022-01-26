@@ -1802,11 +1802,13 @@ private:
 
     if (expand_left) {
       if (!should_expand_left()) {
+        std::cout << "Left verification false and return" << std::endl;
         superroot_->release_write_lock();
         return;
       }
     } else {
       if (!should_expand_right(key)) {
+        std::cout << "Right verification false and return" << std::endl;
         superroot_->release_write_lock();
         return;
       }
