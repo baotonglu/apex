@@ -2224,6 +2224,8 @@ private:
       new_node->get_read_lock();
       my_alloc::BasePMPool::Persist(new_node, new_node->get_node_size());
 
+      std::cout << "2.2 lock value = " << superroot_->lock_ << std::endl;
+
       log->progress_ = 3;
       my_alloc::BasePMPool::Persist(
           &log->progress_, sizeof(log->progress_)); // Undo/Redo dividing line
@@ -2235,6 +2237,9 @@ private:
           bucketID - (bucketID % repeats); // first bucket with same child
       int end_bucketID =
           start_bucketID + repeats; // first bucket with different child
+
+      std::cout << "2.4 lock value = " << superroot_->lock_ << std::endl;
+
       for (int i = start_bucketID; i < end_bucketID; i++) {
         parent->children_[i] = new_node;
       }
