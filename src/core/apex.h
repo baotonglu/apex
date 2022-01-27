@@ -1744,6 +1744,12 @@ public:
       ADD(&stats_.num_keys, (1 << 19));
     }
 
+    if (superroot_->lock_ != 0) {
+      printf("Insert key = %.10f\n", key);
+      std::cout << "lock value = " << superroot_->lock_ << std::endl;
+      exit(-1);
+    }
+
     // std::cout << "Finish insert key " << key << std::endl;
     return true;
   }
