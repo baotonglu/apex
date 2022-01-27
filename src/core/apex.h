@@ -1723,6 +1723,8 @@ public:
         release_link_locks_for_resizing(node);
       } else {
         std::cout << "------3 Data node SMO-----------------" << std::endl;
+        printf("SMO key = %.10f\n", key);
+
         // split data node: always try to split sideways/upwards, only split
         // downwards if necessary
         bool reuse_model = (fail == 3);
