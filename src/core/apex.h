@@ -2240,6 +2240,9 @@ private:
 
       std::cout << "2.4 lock value = " << superroot_->lock_ << std::endl;
 
+      std::cout << "start bucket ID = " << start_bucketID << std::endl;
+      std::cout << "end bucket ID = " << end_bucketID << std::endl;
+
       for (int i = start_bucketID; i < end_bucketID; i++) {
         parent->children_[i] = new_node;
       }
