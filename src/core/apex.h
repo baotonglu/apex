@@ -206,6 +206,8 @@ public:
     empty_data_node->bulk_load(nullptr, 0);
     root_node_ = empty_data_node;
     create_superroot();
+    std::cout << "Root number children value = " << superroot_->num_children_
+              << std::endl;
   }
 
   Apex(bool recover) {
@@ -227,13 +229,11 @@ public:
   }
 
   ~Apex() {
-    std::cout << "start the deallocate" << std::endl;
     for (NodeIterator node_it = NodeIterator(this); !node_it.is_end();
          node_it.next()) {
       delete_node(node_it.current());
     }
     delete_node(superroot_);
-    std::cout << "end the deallocate" << std::endl;
   }
 
   void swap(const self_type &other) {
