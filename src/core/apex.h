@@ -2119,6 +2119,8 @@ private:
     }
 
   RETRAVEL:
+    std::cout << "Before locking parent, lock value = " << superroot_->lock_
+              << std::endl;
 
     // 2. Ready for lock and Update the parent
     std::vector<TraversalNode> traversal_path;
@@ -2126,6 +2128,10 @@ private:
       traversal_path.clear();
     }
     model_node_type *parent = traversal_path.back().node;
+
+    std::cout << "After locking parent, lock value = " << superroot_->lock_
+              << std::endl;
+
     if (parent == superroot_) {
       update_superroot_key_domain(&leaf->min_key_, &leaf->max_key_,
                                   leaf->num_keys_);
@@ -2158,6 +2164,8 @@ private:
       new_node->model_.a_ =
           1.0 / (leaf->max_limit_ - leaf->min_limit_) * fanout;
       new_node->model_.b_ = -new_node->model_.a_ * leaf->min_limit_;
+
+      std::cout << "1. lock value = " << superroot_->lock_ << std::endl;
 
       // since the parent has been locked, we start updating some critical info
       if (used_fanout_tree_nodes.empty()) {
@@ -2211,6 +2219,8 @@ private:
         }
       }
 
+      std::cout << "2. lock value = " << superroot_->lock_ << std::endl;
+
       new_node->get_read_lock();
       my_alloc::BasePMPool::Persist(new_node, new_node->get_node_size());
 
@@ -2232,12 +2242,16 @@ private:
                                     sizeof(new_node) *
                                         (end_bucketID - start_bucketID));
 
+      std::cout << "3. lock value = " << superroot_->lock_ << std::endl;
+
       link_data_nodes(leaf, left_leaf, right_leaf);
       if (parent == superroot_) {
         root_node_ = new_node;
         my_alloc::BasePMPool::Persist(&root_node_, sizeof(root_node_));
         update_superroot_pointer();
       }
+
+      std::cout << "4. lock value = " << superroot_->lock_ << std::endl;
 
       safe_delete_node(leaf);
       new_node->release_read_lock();
