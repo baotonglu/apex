@@ -221,6 +221,9 @@ public:
       root_node_ = empty_data_node;
       create_superroot();
     }
+
+    std::cout << "Root number children value = " << superroot_->num_children_
+              << std::endl;
   }
 
   ~Apex() {
@@ -1748,7 +1751,7 @@ public:
 
     if (superroot_->num_children_ != 1) {
       printf("Insert key = %.10f\n", key);
-      std::cout << "lock value = " << superroot_->num_children_ << std::endl;
+      std::cout << "children = " << superroot_->num_children_ << std::endl;
       exit(-1);
     }
 
