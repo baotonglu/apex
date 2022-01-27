@@ -2143,6 +2143,8 @@ private:
          parent->level_ == superroot_->level_);
 
     if (should_split_downwards) {
+      printf("split_downwards for the key %.10f\n", key);
+      std::cout << "Start lock value = " << superroot_->lock_ << std::endl;
       // 3. Split downwards
       log->progress_ = 2;
       my_alloc::BasePMPool::Persist(&log->progress_, sizeof(log->progress_));
@@ -2254,7 +2256,10 @@ private:
           child_node->release_lock();
         }
       }
+
+      std::cout << "End lock value = " << superroot_->lock_ << std::endl;
     } else {
+      printf("split sideways for the key %.10f\n", key);
       int compute_duplication =
           log_2_round_down(parent->num_children_) - leaf->local_depth_;
       int repeats = 1 << compute_duplication;
