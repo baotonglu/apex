@@ -2240,6 +2240,12 @@ private:
 
       std::cout << "2.4 lock value = " << superroot_->lock_ << std::endl;
 
+      std::cout << "repeats = " << repeats << std::endl;
+      std::cout << "paprent num children = " << parent->num_children_
+                << std::endl;
+      std::cout << "leaf local depth = " << leaf->local_depth_ << std::endl;
+      std::cout << "bucket ID = " << bucketID << std::endl;
+
       std::cout << "start bucket ID = " << start_bucketID << std::endl;
       std::cout << "end bucket ID = " << end_bucketID << std::endl;
 
