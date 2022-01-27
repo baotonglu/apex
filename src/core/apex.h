@@ -2243,7 +2243,8 @@ private:
       std::cout << "repeats = " << repeats << std::endl;
       std::cout << "paprent num children = " << parent->num_children_
                 << std::endl;
-      std::cout << "leaf local depth = " << leaf->local_depth_ << std::endl;
+      std::cout << "leaf local depth = "
+                << static_cast<uint64_t>(leaf->local_depth_) << std::endl;
       std::cout << "bucket ID = " << bucketID << std::endl;
 
       std::cout << "start bucket ID = " << start_bucketID << std::endl;
