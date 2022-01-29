@@ -297,6 +297,8 @@ private:
       auto node_copy = reinterpret_cast<model_node_type *>(pmemobj_direct(tmp));
       new (node_copy)
           model_node_type(*static_cast<const model_node_type *>(node));
+      node_copy->num_children_ =
+          static_cast<const model_node_type *>(node)->num_children_;
 #endif
 
       int cur = 0;
@@ -1147,6 +1149,8 @@ private:
     superroot_ = reinterpret_cast<model_node_type *>(pmemobj_direct(tmp));
     new (superroot_)
         model_node_type(static_cast<short>(root_node_->level_ - 1), allocator_);
+    superroot_->num_children_ = 1;
+
     update_superroot_pointer();
   }
 
@@ -1909,6 +1913,7 @@ private:
       new (new_root) model_node_type(root->level_, allocator_);
       new_root->local_depth_ = root->local_depth_;
       new_root->model_ = root->model_;
+      new_root->num_children_ = root->num_children_;
 
       int copy_start;
       if (expand_left) {
@@ -1935,6 +1940,7 @@ private:
       new_root = reinterpret_cast<model_node_type *>(pmemobj_direct(tmp));
       new (new_root) model_node_type(root->level_ - 1, allocator_);
       new_root->local_depth_ = root->local_depth_;
+      new_root->num_children_ = expansion_factor;
 
       // auto new_root = new (model_node_allocator().allocate(1))
       // model_node_type(static_cast<short>(root->level_ - 1), allocator_);
