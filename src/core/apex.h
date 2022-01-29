@@ -1802,12 +1802,10 @@ private:
   // a new root node.
   void expand_root(T key, bool expand_left) {
     std::cout << "I am in expanding process" << std::endl;
-    if (!superroot_->try_get_write_lock(true)) {
+    if (!superroot_->try_get_write_lock()) {
       std::cout << "False to get the write lock in superroot" << std::endl;
       return;
     }
-
-    std::cout << "hello?" << std::endl;
 
     if (expand_left) {
       if (!should_expand_left()) {
@@ -2067,6 +2065,8 @@ private:
       outermost_node->next_leaf_ = first_new_leaf;
       first_new_leaf->prev_leaf_ = outermost_node;
     }
+
+    std::cout << "5. Start update the root node pointer" << std::endl;
 
     root_node_ = new_root;
     update_superroot_pointer();

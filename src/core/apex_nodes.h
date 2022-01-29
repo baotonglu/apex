@@ -193,33 +193,19 @@ public:
     return true;
   }
 
-  inline bool try_get_write_lock(bool verbose = false) {
+  inline bool try_get_write_lock() {
     uint32_t v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
     uint32_t old_value = v & lockMask;
     uint32_t new_value = old_value | lockSet;
 
-    if (verbose) {
-      std::cout << "1. lock value = " << lock_ << std::endl;
-      std::cout << " old value = " << old_value << std::endl;
-      std::cout << " new value = " << new_value << std::endl;
-    }
-
     if (!CAS(&lock_, &old_value, new_value)) {
       return false;
-    }
-
-    if (verbose) {
-      std::cout << "2. lock value = " << lock_ << std::endl;
     }
 
     // wait until the readers all exit the critical section
     v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
     while (v & lockMask) {
       v = __atomic_load_n(&lock_, __ATOMIC_ACQUIRE);
-    }
-
-    if (verbose) {
-      std::cout << "3. lock value = " << lock_ << std::endl;
     }
 
     return true;
