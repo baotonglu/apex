@@ -1565,7 +1565,6 @@ public:
 
       if (fail == 5) // Data node resizing
       {
-        std::cout << "------1 Data node resizing-----------------" << std::endl;
         // Directly resize the current node
         // Resize this node and install to the parent
         // 0. Start logging
@@ -1657,7 +1656,6 @@ public:
       }
 
       if (fanout_tree_depth == 0) {
-        std::cout << "------2 Data node resizing-----------------" << std::endl;
         // 0. Start logging
         ResizeLog *resize_log = &(my_log.local_log_->resize_log_);
         resize_log->progress_ = 1;
@@ -1729,9 +1727,6 @@ public:
 
         release_link_locks_for_resizing(node);
       } else {
-        std::cout << "------3 Data node SMO-----------------" << std::endl;
-        printf("SMO key = %.10f\n", key);
-
         // split data node: always try to split sideways/upwards, only split
         // downwards if necessary
         bool reuse_model = (fail == 3);
@@ -1751,18 +1746,6 @@ public:
     insert_counter = (insert_counter + 1) & counterMask;
     if (insert_counter == 0) {
       ADD(&stats_.num_keys, (1 << 19));
-    }
-
-    if (superroot_->num_children_ != 1) {
-      printf("Insert key = %.10f\n", key);
-      std::cout << "children = " << superroot_->num_children_ << std::endl;
-      exit(-1);
-    }
-
-    if (superroot_->lock_ != 0) {
-      printf("Insert key = %.10f\n", key);
-      std::cout << "lock value = " << superroot_->lock_ << std::endl;
-      exit(-1);
     }
 
     // std::cout << "Finish insert key " << key << std::endl;
@@ -2134,18 +2117,12 @@ private:
     }
 
   RETRAVEL:
-    std::cout << "Before locking parent, lock value = " << superroot_->lock_
-              << std::endl;
-
     // 2. Ready for lock and Update the parent
     std::vector<TraversalNode> traversal_path;
     while (!lock_parent_node(key, &traversal_path, leaf, false)) {
       traversal_path.clear();
     }
     model_node_type *parent = traversal_path.back().node;
-
-    std::cout << "After locking parent, lock value = " << superroot_->lock_
-              << std::endl;
 
     if (parent == superroot_) {
       update_superroot_key_domain(&leaf->min_key_, &leaf->max_key_,
@@ -2164,8 +2141,6 @@ private:
          parent->level_ == superroot_->level_);
 
     if (should_split_downwards) {
-      printf("split_downwards for the key %.10f\n", key);
-      std::cout << "Start lock value = " << superroot_->lock_ << std::endl;
       // 3. Split downwards
       log->progress_ = 2;
       my_alloc::BasePMPool::Persist(&log->progress_, sizeof(log->progress_));
@@ -2179,8 +2154,6 @@ private:
       new_node->model_.a_ =
           1.0 / (leaf->max_limit_ - leaf->min_limit_) * fanout;
       new_node->model_.b_ = -new_node->model_.a_ * leaf->min_limit_;
-
-      std::cout << "1. lock value = " << superroot_->lock_ << std::endl;
 
       // since the parent has been locked, we start updating some critical info
       if (used_fanout_tree_nodes.empty()) {
@@ -2234,12 +2207,8 @@ private:
         }
       }
 
-      std::cout << "2. lock value = " << superroot_->lock_ << std::endl;
-
       new_node->get_read_lock();
       my_alloc::BasePMPool::Persist(new_node, new_node->get_node_size());
-
-      std::cout << "2.2 lock value = " << superroot_->lock_ << std::endl;
 
       log->progress_ = 3;
       my_alloc::BasePMPool::Persist(
@@ -2253,18 +2222,6 @@ private:
       int end_bucketID =
           start_bucketID + repeats; // first bucket with different child
 
-      std::cout << "2.4 lock value = " << superroot_->lock_ << std::endl;
-
-      std::cout << "repeats = " << repeats << std::endl;
-      std::cout << "paprent num children = " << parent->num_children_
-                << std::endl;
-      std::cout << "leaf local depth = "
-                << static_cast<uint64_t>(leaf->local_depth_) << std::endl;
-      std::cout << "bucket ID = " << bucketID << std::endl;
-
-      std::cout << "start bucket ID = " << start_bucketID << std::endl;
-      std::cout << "end bucket ID = " << end_bucketID << std::endl;
-
       for (int i = start_bucketID; i < end_bucketID; i++) {
         parent->children_[i] = new_node;
       }
@@ -2272,16 +2229,12 @@ private:
                                     sizeof(new_node) *
                                         (end_bucketID - start_bucketID));
 
-      std::cout << "3. lock value = " << superroot_->lock_ << std::endl;
-
       link_data_nodes(leaf, left_leaf, right_leaf);
       if (parent == superroot_) {
         root_node_ = new_node;
         my_alloc::BasePMPool::Persist(&root_node_, sizeof(root_node_));
         update_superroot_pointer();
       }
-
-      std::cout << "4. lock value = " << superroot_->lock_ << std::endl;
 
       safe_delete_node(leaf);
       new_node->release_read_lock();
@@ -2301,9 +2254,7 @@ private:
         }
       }
 
-      std::cout << "End lock value = " << superroot_->lock_ << std::endl;
     } else {
-      printf("split sideways for the key %.10f\n", key);
       int compute_duplication =
           log_2_round_down(parent->num_children_) - leaf->local_depth_;
       int repeats = 1 << compute_duplication;
