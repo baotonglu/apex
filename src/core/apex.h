@@ -1504,12 +1504,12 @@ public:
   bool insert_unsafe(const T &key, const P &payload) {
     // If enough keys fall outside the key domain, expand the root to expand the
     // key domain
-    T debug_key = 32471.4740744;
+    /* T debug_key = 32471.4740744;
     if (key == debug_key) {
       printf("Insert key %.10f\n", key);
       printf("Min key %.10f\n", istats_.key_domain_min_);
       printf("Max key %.10f\n", istats_.key_domain_max_);
-    }
+    } */
   RETRY:
     if (key > istats_.key_domain_max_) {
       ADD(&istats_.num_keys_above_key_domain, 1);
@@ -1525,16 +1525,16 @@ public:
       }
     }
 
-    if (key == debug_key) {
-      std::cout << "Pass expansion check" << std::endl;
-    }
+    /*  if (key == debug_key) {
+       std::cout << "Pass expansion check" << std::endl;
+     } */
 
     thread_local LocalLog my_log(log_); // The log descriptor
     data_node_type *leaf = get_leaf(key);
 
-    if (key == debug_key) {
-      std::cout << "I have gotten the corresponding leaf" << std::endl;
-    }
+    /*   if (key == debug_key) {
+        std::cout << "I have gotten the corresponding leaf" << std::endl;
+      } */
 
     // First test it whether it needs to be recoverred
     if (leaf->local_version_ != global_version_) {
@@ -1546,10 +1546,10 @@ public:
     int fail = ret.first;
     double stash_frac = ret.second;
 
-    if (key == debug_key) {
-      std::cout << "I finish the insertion in the leaf" << std::endl;
-      std::cout << "Fail num = " << fail << std::endl;
-    }
+    /*     if (key == debug_key) {
+          std::cout << "I finish the insertion in the leaf" << std::endl;
+          std::cout << "Fail num = " << fail << std::endl;
+        } */
 
     // If no insert, figure out what to do with the data node to decrease the
     // cost
@@ -1565,6 +1565,7 @@ public:
 
       if (fail == 5) // Data node resizing
       {
+        std::cout << "data node resizing" << std::endl;
         // Directly resize the current node
         // Resize this node and install to the parent
         // 0. Start logging
@@ -1656,6 +1657,7 @@ public:
       }
 
       if (fanout_tree_depth == 0) {
+        std::cout << "data node resizing with cost computation" << std::endl;
         // 0. Start logging
         ResizeLog *resize_log = &(my_log.local_log_->resize_log_);
         resize_log->progress_ = 1;
@@ -2141,6 +2143,7 @@ private:
          parent->level_ == superroot_->level_);
 
     if (should_split_downwards) {
+      std::cout << "Split downwards" << std::endl;
       // 3. Split downwards
       log->progress_ = 2;
       my_alloc::BasePMPool::Persist(&log->progress_, sizeof(log->progress_));
@@ -2231,6 +2234,7 @@ private:
 
       link_data_nodes(leaf, left_leaf, right_leaf);
       if (parent == superroot_) {
+        std::cout << "Downwards for root node " << std::endl;
         root_node_ = new_node;
         my_alloc::BasePMPool::Persist(&root_node_, sizeof(root_node_));
         update_superroot_pointer();
@@ -2255,6 +2259,7 @@ private:
       }
 
     } else {
+      std::cout << "Split sideways" << std::endl;
       int compute_duplication =
           log_2_round_down(parent->num_children_) - leaf->local_depth_;
       int repeats = 1 << compute_duplication;
@@ -2265,6 +2270,7 @@ private:
           goto RETRAVEL;
         }
 
+        std::cout << "Enlarge the parent model node" << std::endl;
         // 4. Resize the parent
         log->progress_ = 4;
         my_alloc::BasePMPool::Persist(&log->progress_, sizeof(log->progress_));
@@ -2302,6 +2308,7 @@ private:
 
         // if grand_parent is the root node, need to update it
         if (grand_parent == superroot_) {
+          std::cout << "Parent node is a root node" << std::endl;
           root_node_ = new_node;
           my_alloc::BasePMPool::Persist(&root_node_, sizeof(new_node));
           update_superroot_pointer();
