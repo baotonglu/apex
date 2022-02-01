@@ -1635,6 +1635,13 @@ public:
         return true;
       }
 
+      if (root_node_ == leaf) {
+        leaf->max_limit_ = leaf->max_key_;
+        leaf->min_limit_ = leaf->min_key_;
+        printf("Max key = %.10f\n", leaf->max_key_);
+        printf("Min key = %.10f\n", leaf->min_key_);
+      }
+
       // Not all locks and SMO lock in leaf node are held, remember to release
       // it after the SMO
       std::vector<fanout_tree::FTNode> used_fanout_tree_nodes;
@@ -1654,6 +1661,12 @@ public:
             fanout_tree::find_best_fanout_existing_node_without_parent<T, P>(
                 leaf, stats_.num_keys, used_fanout_tree_nodes,
                 derived_params_.max_fanout, true);
+      }
+
+      if (root_node_ == leaf) {
+        printf("Real max key = %.10f\n",
+               leaf->sorted_slots_[leaf->num_keys_ - 1]);
+        printf("Real Min key = %.10f\n", leaf->sorted_slots_[0]);
       }
 
       if (fanout_tree_depth == 0) {
