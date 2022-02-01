@@ -1992,8 +1992,6 @@ private:
     // auto new_node_duplication_factor =
     // static_cast<uint8_t>(log_2_round_down(n));
 
-    outermost_node->build_sorted_slots();
-
     if (expand_left) {
       T left_boundary_value = istats_.key_domain_min_;
       int left_boundary =
