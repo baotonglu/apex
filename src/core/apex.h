@@ -1848,6 +1848,8 @@ private:
     T new_domain_max = istats_.key_domain_max_;
     data_node_type *outermost_node;
     if (expand_left) {
+      outermost_node = first_data_node();
+      outermost_node->build_sorted_slots();
       auto key_difference = static_cast<double>(istats_.key_domain_min_ -
                                                 std::min(key, get_min_key()));
       expansion_factor = pow_2_round_up(static_cast<int>(
@@ -1866,8 +1868,9 @@ private:
       }
       istats_.num_keys_at_last_left_domain_resize = stats_.num_keys;
       istats_.num_keys_below_key_domain = 0;
-      outermost_node = first_data_node();
     } else {
+      outermost_node = last_data_node();
+      outermost_node->build_sorted_slots();
       auto key_difference = static_cast<double>(std::max(key, get_max_key()) -
                                                 istats_.key_domain_max_);
       expansion_factor = pow_2_round_up(static_cast<int>(
@@ -1886,7 +1889,6 @@ private:
       }
       istats_.num_keys_at_last_right_domain_resize = stats_.num_keys;
       istats_.num_keys_above_key_domain = 0;
-      outermost_node = last_data_node();
     }
     assert(expansion_factor > 1);
 
