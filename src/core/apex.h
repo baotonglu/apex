@@ -1999,6 +1999,10 @@ private:
           outermost_node->lower_bound(left_boundary_value, true);
       std::cout << "Find the left boundary" << std::endl;
       data_node_type *next = outermost_node;
+      std::cout << "new nodes end = " << new_nodes_end << std::endl;
+      std::cout << "new nodes start = " << new_nodes_start << std::endl;
+      std::cout << "n = " << n << std::endl;
+      exit(-1);
       for (int i = new_nodes_end; i > new_nodes_start; i -= n) {
         if (i <= in_bounds_new_nodes_start) {
           // Do not initialize nodes that fall outside the key type's domain
@@ -2038,6 +2042,10 @@ private:
           outermost_node->lower_bound(right_boundary_value, true);
       std::cout << "Find the right boundary" << std::endl;
       data_node_type *prev = nullptr;
+      std::cout << "new nodes end = " << new_nodes_end << std::endl;
+      std::cout << "new nodes start = " << new_nodes_start << std::endl;
+      std::cout << "n = " << n << std::endl;
+      exit(-1);
       for (int i = new_nodes_start; i < new_nodes_end; i += n) {
         if (i >= in_bounds_new_nodes_end) {
           std::cout << "Enter into non-initialize branch" << std::endl;
