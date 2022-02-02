@@ -2088,6 +2088,9 @@ private:
     update_superroot_pointer();
     root = new_root;
 
+    printf("Original domain min = %.10f\n", istats_.key_domain_min_);
+    printf("Original domain max = %.10f\n", istats_.key_domain_max_);
+
     printf("New domain min = %.10f\n", new_domain_min);
     printf("New domain max = %.10f\n", new_domain_max);
 
