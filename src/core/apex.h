@@ -1993,13 +1993,16 @@ private:
     // static_cast<uint8_t>(log_2_round_down(n));
 
     if (expand_left) {
+      std::cout << "Expand Left" << std::endl;
       T left_boundary_value = istats_.key_domain_min_;
       int left_boundary =
           outermost_node->lower_bound(left_boundary_value, true);
+      std::cout << "Find the left boundary" << std::endl;
       data_node_type *next = outermost_node;
       for (int i = new_nodes_end; i > new_nodes_start; i -= n) {
         if (i <= in_bounds_new_nodes_start) {
           // Do not initialize nodes that fall outside the key type's domain
+          std::cout << "Enter into non-initialize branch" << std::endl;
           break;
         }
         int right_boundary = left_boundary;
@@ -2010,10 +2013,12 @@ private:
           left_boundary =
               outermost_node->lower_bound(left_boundary_value, true);
         }
+        std::cout << "Find the next lower bound" << std::endl;
         PMEMoid tmp;
         data_node_type *new_node = bulk_load_leaf_node_from_existing(
             outermost_node, left_boundary, right_boundary, true, nullptr, false,
             false, false, false, &tmp);
+        std::cout << "Finish the bulk load" << std::endl;
         new_node->level_ = static_cast<short>(new_root->level_ + 1);
         // new_node->duplication_factor_ = new_node_duplication_factor;
         new_node->local_depth_ = new_local_depth;
@@ -2027,12 +2032,15 @@ private:
         }
       }
     } else {
+      std::cout << "Expand Right" << std::endl;
       T right_boundary_value = istats_.key_domain_max_;
       int right_boundary =
           outermost_node->lower_bound(right_boundary_value, true);
+      std::cout << "Find the right boundary" << std::endl;
       data_node_type *prev = nullptr;
       for (int i = new_nodes_start; i < new_nodes_end; i += n) {
         if (i >= in_bounds_new_nodes_end) {
+          std::cout << "Enter into non-initialize branch" << std::endl;
           // Do not initialize nodes that fall outside the key type's domain
           break;
         }
@@ -2044,10 +2052,12 @@ private:
           right_boundary =
               outermost_node->lower_bound(right_boundary_value, true);
         }
+        std::cout << "Find the next lower bound" << std::endl;
         PMEMoid tmp;
         data_node_type *new_node = bulk_load_leaf_node_from_existing(
             outermost_node, left_boundary, right_boundary, true, nullptr, false,
             false, false, false, &tmp);
+        std::cout << "Finish the bulk load" << std::endl;
         new_node->level_ = static_cast<short>(new_root->level_ + 1);
         // new_node->duplication_factor_ = new_node_duplication_factor;
         new_node->local_depth_ = new_local_depth;
