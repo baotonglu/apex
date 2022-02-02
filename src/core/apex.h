@@ -1506,7 +1506,6 @@ public:
   bool insert_unsafe(const T &key, const P &payload) {
     // If enough keys fall outside the key domain, expand the root to expand the
     // key domain
-    std::cout << "Insert key " << key << std::endl;
     /* T debug_key = 32471.4740744;
     if (key == debug_key) {
       printf("Insert key %.10f\n", key);
