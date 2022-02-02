@@ -1515,8 +1515,8 @@ public:
   RETRY:
     if (key > istats_.key_domain_max_) {
       ADD(&istats_.num_keys_above_key_domain, 1);
-      std::cout << "Num obove key domain = "
-                << istats_.num_keys_above_key_domain << std::endl;
+      // std::cout << "Num obove key domain = "
+      // << istats_.num_keys_above_key_domain << std::endl;
       if (should_expand_right(key)) {
         expand_root(key, false); // expand to the right
       }
@@ -1567,7 +1567,7 @@ public:
 
       if (fail == 5) // Data node resizing
       {
-        std::cout << "data node resizing" << std::endl;
+        // std::cout << "data node resizing" << std::endl;
         // Directly resize the current node
         // Resize this node and install to the parent
         // 0. Start logging
@@ -1670,6 +1670,8 @@ public:
                leaf->sorted_slots_[leaf->num_keys_ - 1]);
         printf("Real Min key = %.10f\n", leaf->sorted_slots_[0]);
       }
+
+      exit(0);
 
       if (fanout_tree_depth == 0) {
         std::cout << "data node resizing with cost computation" << std::endl;
@@ -1919,9 +1921,6 @@ private:
       int copy_start;
       if (expand_left) {
         copy_start = new_num_children - root->num_children_;
-        std::cout << "new num children = " << new_num_children << std::endl;
-        std::cout << "original num children = " << root->num_children_
-                  << std::endl;
         new_nodes_start = 0;
         new_nodes_end = copy_start;
         // root->model_.b_ += new_num_children - root->num_children_;
