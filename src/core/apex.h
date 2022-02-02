@@ -1900,6 +1900,7 @@ private:
     model_node_type *new_root = nullptr;
     if (static_cast<size_t>(root->num_children_) * expansion_factor <=
         static_cast<size_t>(derived_params_.max_fanout)) {
+      std::cout << "Direct root expansion" << std::endl;
       // Expand root node
       // stats_.num_model_node_expansions++;
       // stats_.num_model_node_expansion_pointers += root->num_children_;
@@ -1932,6 +1933,7 @@ private:
       // root->children_ = new_children;
       // root->num_children_ = new_num_children;
     } else {
+      std::cout << "Allocate new root" << std::endl;
       // Create new root node
       PMEMoid tmp; // New root
       model_node_type::New(&tmp, expansion_factor);
@@ -1986,6 +1988,10 @@ private:
     // Requires reassigning some keys from the outermost pre-existing data node
     // to the new data nodes.
     int n = new_root->num_children_ - (new_nodes_end - new_nodes_start);
+    std::cout << "new root num childrens = " << new_root->num_children_
+              << std::endl;
+    std::cout << "new nodes end = " << new_nodes_end << std::endl;
+    std::cout << "new nodes start = " << new_nodes_start << std::endl;
     assert(new_root->num_children_ % n == 0);
     auto new_local_depth = static_cast<uint8_t>(
         log_2_round_down(new_root->num_children_) - log_2_round_down(n));
