@@ -1640,8 +1640,6 @@ public:
       if (root_node_ == leaf) {
         leaf->max_limit_ = leaf->max_key_;
         leaf->min_limit_ = leaf->min_key_;
-        printf("Max key = %.10f\n", leaf->max_key_);
-        printf("Min key = %.10f\n", leaf->min_key_);
       }
 
       // Not all locks and SMO lock in leaf node are held, remember to release
@@ -1665,16 +1663,8 @@ public:
                 derived_params_.max_fanout, true);
       }
 
-      if (root_node_ == leaf) {
-        printf("Real max key = %.10f\n",
-               leaf->sorted_slots_[leaf->num_keys_ - 1]);
-        printf("Real Min key = %.10f\n", leaf->sorted_slots_[0]);
-      }
-
-      exit(0);
-
       if (fanout_tree_depth == 0) {
-        std::cout << "data node resizing with cost computation" << std::endl;
+        // std::cout << "data node resizing with cost computation" << std::endl;
         // 0. Start logging
         ResizeLog *resize_log = &(my_log.local_log_->resize_log_);
         resize_log->progress_ = 1;
@@ -2095,6 +2085,11 @@ private:
     update_superroot_pointer();
     root = new_root;
 
+    printf("Original domain min = %.10f\n", istats_.key_domain_min_);
+    printf("Original domain max = %.10f\n", istats_.key_domain_max_);
+    printf("New domain min = %.10f\n", new_domain_min);
+    printf("New domain max = %.10f\n", new_domain_max);
+
     istats_.key_domain_min_ = new_domain_min;
     istats_.key_domain_max_ = new_domain_max;
 
@@ -2164,7 +2159,7 @@ private:
          parent->level_ == superroot_->level_);
 
     if (should_split_downwards) {
-      std::cout << "Split downwards" << std::endl;
+      // std::cout << "Split downwards" << std::endl;
       // 3. Split downwards
       log->progress_ = 2;
       my_alloc::BasePMPool::Persist(&log->progress_, sizeof(log->progress_));
@@ -2255,7 +2250,7 @@ private:
 
       link_data_nodes(leaf, left_leaf, right_leaf);
       if (parent == superroot_) {
-        std::cout << "Downwards for root node " << std::endl;
+        // std::cout << "Downwards for root node " << std::endl;
         root_node_ = new_node;
         my_alloc::BasePMPool::Persist(&root_node_, sizeof(root_node_));
         update_superroot_pointer();
@@ -2280,7 +2275,7 @@ private:
       }
 
     } else {
-      std::cout << "Split sideways" << std::endl;
+      // std::cout << "Split sideways" << std::endl;
       int compute_duplication =
           log_2_round_down(parent->num_children_) - leaf->local_depth_;
       int repeats = 1 << compute_duplication;
@@ -2291,7 +2286,7 @@ private:
           goto RETRAVEL;
         }
 
-        std::cout << "Enlarge the parent model node" << std::endl;
+        // std::cout << "Enlarge the parent model node" << std::endl;
         // 4. Resize the parent
         log->progress_ = 4;
         my_alloc::BasePMPool::Persist(&log->progress_, sizeof(log->progress_));
@@ -2329,7 +2324,7 @@ private:
 
         // if grand_parent is the root node, need to update it
         if (grand_parent == superroot_) {
-          std::cout << "Parent node is a root node" << std::endl;
+          // std::cout << "Parent node is a root node" << std::endl;
           root_node_ = new_node;
           my_alloc::BasePMPool::Persist(&root_node_, sizeof(new_node));
           update_superroot_pointer();
