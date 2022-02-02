@@ -1917,6 +1917,9 @@ private:
       int copy_start;
       if (expand_left) {
         copy_start = new_num_children - root->num_children_;
+        std::cout << "new num children = " << new_num_children << std::endl;
+        std::cout << "original num children = " << root->num_children_
+                  << std::endl;
         new_nodes_start = 0;
         new_nodes_end = copy_start;
         // root->model_.b_ += new_num_children - root->num_children_;
