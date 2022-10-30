@@ -5,7 +5,7 @@ thread_num=(0 1 2 4 8 16 24 32 48)
 for j in 1
 do
     rm -f /mnt/pmem0/baotong/template.data
-    LD_PRELOAD="/usr/lib/libjemalloc.so.2 ./build/pmdk/src/PMDK/src/nondebug/libpmemobj.so.1" /usr/bin/hog-machine.sh numactl --cpunodebind=0 --membind=0 ./build/benchmark \
+    LD_PRELOAD="/usr/lib/libjemalloc.so.2 ./build/pmdk/src/PMDK/src/nondebug/libpmemobj.so.1" numactl --cpunodebind=0 --membind=0 ./build/benchmark \
         --keys_file=$1 \
         --keys_file_type=$2 \
         --keys_type=$3 \
