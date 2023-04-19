@@ -2,7 +2,14 @@
 
 # APEX: A High-Performance Learned Index on Persistent Memory
 
-More details are described in our [preprint](https://arxiv.org/abs/2105.00683).
+
+More details are described in our [VLDB paper](https://www.vldb.org/pvldb/vol15/p597-lu.pdf) and [extended version](https://arxiv.org/pdf/2105.00683). If you use our work, please cite:
+
+````
+Baotong Lu, Jialin Ding, Eric Lo, Umar Farooq Minhas, Tianzheng Wang, :
+APEX: A High-Performance Learned Index on Persistent Memory.
+PVLDB 15(3): 597-610 (2022)
+````
 
 ## Building
 
